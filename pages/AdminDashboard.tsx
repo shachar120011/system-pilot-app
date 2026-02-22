@@ -9,8 +9,10 @@ import { Issue, KnowledgeItem, IssuePriority, IssueCategory, UserQuery, QueryTre
 import { v4 as uuidv4 } from 'uuid';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
+// Set worker source for PDF.js to handle parsing in a web worker
 GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
 
+// Backend URL for Google Sheets logging
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfIFA_uSeLGUU5WPyhU5kDCSIGmFGBnKy8co6dAN_t4PEM8ttygaJtT5eu3IjLM3XY/exec";
 
 interface AdminDashboardProps {
@@ -18,11 +20,13 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) => {
+  // --- Auth State ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminName, setAdminName] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authError, setAuthError] = useState(false);
 
+  // --- Dashboard State ---
   const [issues, setIssues] = useState<Issue[]>([]);
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([]);
   const [queries, setQueries] = useState<UserQuery[]>([]);
@@ -31,8 +35,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   const [loading, setLoading] = useState(true);
   const [aiInsight, setAiInsight] = useState<string>('');
 
+  // Dashboard Sub-tabs
   const [dashboardTab, setDashboardTab] = useState<'overview' | 'tasks' | 'users'>('overview');
 
+  // Knowledge Upload State
   const [newDocTitle, setNewDocTitle] = useState('');
   const [newDocContent, setNewDocContent] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -40,10 +46,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   const [isReadingFile, setIsReadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Edit State for Reports
   const [editingIssue, setEditingIssue] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [editStatus, setEditStatus] = useState<Issue['status']>('open');
 
+  // Issue Report Filters & Sort
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -51,6 +59,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   const [filterDate, setFilterDate] = useState<string>('');
   const [sortOption, setSortOption] = useState<'newest' | 'oldest' | 'open_first'>('newest');
 
+  // Query Filters & Sort
   const [queryFilterStatus, setQueryFilterStatus] = useState<string>('all');
   const [queryFilterUser, setQueryFilterUser] = useState<string>('');
   const [queryFilterDate, setQueryFilterDate] = useState<string>('');
@@ -73,11 +82,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   };
 
   const loadData = async () => {
+    // טעינת שאלות ותקלות מהאחסון המקומי
     const loadedIssues = StorageService.getIssues();
     setIssues(loadedIssues);
     const loadedQueries = StorageService.getQueries();
     setQueries(loadedQueries);
     
+    // --- משיכת מאגר הידע מ-Google Sheets בצורה בטוחה ---
     try {
       const response = await fetch(`${APPS_SCRIPT_URL}?sheet=Knowledge_Base`);
       const result = await response.json();
@@ -106,6 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     if (activeView === 'dashboard' && loadedIssues.length > 0 && !aiInsight) {
         generateInsight(loadedIssues);
     }
+
     if (activeView === 'queries' && loadedQueries.length > 0 && queryTrends.length === 0) {
         generateTrends(loadedQueries);
     }
@@ -181,6 +193,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     StorageService.saveKnowledgeItem(newItem);
     setKnowledgeItems(prev => [newItem, ...prev]);
 
+    // --- שליחה ל-Google Sheets בדרך פשוטה שעוקפת CORS ---
     try {
       await fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -242,6 +255,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       document.body.removeChild(link);
   };
 
+  // --- Processed Data for Views ---
   const filteredIssues = useMemo(() => {
     return issues.filter(issue => {
         if (filterStatus !== 'all' && issue.status !== filterStatus) return false;
@@ -375,7 +389,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   }, [issues]);
 
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
-
+  // --- Authenticated Check ---
   if (!isAuthenticated) {
       return (
           <div className="flex flex-col items-center justify-center h-full p-6 animate-fadeIn">
@@ -436,6 +450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       );
   }
 
+  // --- Views ---
   if (activeView === 'knowledge') {
     return (
       <div className="p-6 max-w-6xl mx-auto animate-fadeIn">
