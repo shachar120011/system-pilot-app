@@ -81,17 +81,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       }
   };
 
-  const loadData = () => {
+const loadData = async () => {
+    // טעינת שאלות ותקלות
     const loadedIssues = StorageService.getIssues();
     setIssues(loadedIssues);
-    setKnowledgeItems(StorageService.getKnowledgeBase());
     
     const loadedQueries = StorageService.getQueries();
     setQueries(loadedQueries);
     
+    // --- הקסם קורה כאן: משיכת מאגר הידע מ-Google Sheets ---
+    try {
+      const response = await fetch(`${APPS_SCRIPT_URL}?sheet=Knowledge_Base`);
+      const result = await response.json();
+      
+      if (result.status === "success" && result.data && result.data.length > 0) {
+        // ממירים את שורות האקסל לפורמט שהאתר יודע להציג
+        const sheetItems = result.data.map((row: any, index: number) => ({
+          id: `sheet-${index}`,
+          createdAt: new Date(row[0]).getTime() || Date.now(),
+          title: row[1] || '',
+          content: row[2] || '',
+          fileName: row[3] || '',
+          sourceType: row[3] ? 'file' : 'manual'
+        })).filter((item: any) => item.title !== ''); // מסנן שורות ריקות בטעות
+        
+        // מעדכנים את האתר! (reverse כדי שהמסמך הכי חדש יופיע למעלה)
+        setKnowledgeItems(sheetItems.reverse()); 
+      } else {
+         // אם הטבלה ריקה, נשתמש בגיבוי
+         setKnowledgeItems(StorageService.getKnowledgeBase()); 
+      }
+    } catch (error) {
+      console.error("Error fetching knowledge base:", error);
+      setKnowledgeItems(StorageService.getKnowledgeBase());
+    }
+    
     setLoading(false);
     
-    // Only generate insight on main dashboard view to save tokens/calls
+    // הפעלת ה-AI לניתוחים
     if (activeView === 'dashboard' && loadedIssues.length > 0 && !aiInsight) {
         generateInsight(loadedIssues);
     }
