@@ -201,10 +201,11 @@ const loadData = async () => {
     StorageService.saveKnowledgeItem(newItem);
     setKnowledgeItems(prev => [newItem, ...prev]);
 
-    // --- Log to Google Sheets (Knowledge_Base) ---
+// --- Log to Google Sheets (Knowledge_Base) ---
     try {
       await fetch(APPS_SCRIPT_URL, {
         method: "POST",
+        mode: "no-cors", // <--- הנה "מילת הקסם" שפותחת את החסימה של גוגל
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           sheet: "Knowledge_Base",
@@ -214,8 +215,7 @@ const loadData = async () => {
             newItem.content,
             newItem.fileName || ""
           ]
-        }),
-        keepalive: true
+        })
       });
     } catch (error) {
       console.error("Failed to log knowledge item to Sheets:", error);
