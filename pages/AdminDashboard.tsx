@@ -13,7 +13,7 @@ import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
 
 // Backend URL for Google Sheets logging
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPPfvD25VIF26Q8fpgAmliJCfe3u2VIl_5jUzWqgJv7cvmmKMA9_DCFnOKwR-B89M_/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfIFA_uSeLGUU5WPyhU5kDCSIGmFGBnKy8co6dAN_t4PEM8ttygaJtT5eu3IjLM3XY/exec";
 
 interface AdminDashboardProps {
   activeView: string;
