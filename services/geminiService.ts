@@ -2,7 +2,6 @@ import { GoogleGenAI, Type, Schema, ThinkingLevel } from "@google/genai";
 import { AiAnalysisResult, IssueCategory, IssuePriority, UserQuery, QueryTrend, QAResponse } from "../types";
 
 // CONSTANTS
-// Using gemini-3-flash-preview as the latest efficient model for this environment
 const MODEL_NAME_FAST = "gemini-3-flash-preview";
 
 class GeminiServiceImpl {
@@ -10,14 +9,9 @@ class GeminiServiceImpl {
   private apiKey: string | undefined;
 
   constructor() {
-    // Security: Access env var safely using import.meta.env.VITE_GEMINI_API_KEY
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   }
 
-  /**
-   * Lazy initializer for the Gemini Client.
-   * Ensures the app doesn't crash on startup if key is missing.
-   */
   private getClient(): GoogleGenAI {
     if (!this.apiKey) {
       throw new Error("System Configuration Error: Missing VITE_GEMINI_API_KEY in environment variables.");
@@ -35,7 +29,7 @@ class GeminiServiceImpl {
   }
 
   /**
-   * Answers a user's question based on the provided knowledge base context.
+   * Answers a user's question by synthesizing multiple context sources.
    */
   public async askQuestion(context: string, question: string): Promise<QAResponse> {
     try {
@@ -44,34 +38,37 @@ class GeminiServiceImpl {
       const responseSchema: Schema = {
         type: Type.OBJECT,
         properties: {
-          answer: { type: Type.STRING, description: "The answer to the user's question based on the context, formatted in Markdown." },
+          answer: { type: Type.STRING, description: "The synthesized answer based on all context sources, formatted in beautiful Markdown." },
           suggestions: { 
             type: Type.ARRAY, 
             items: { type: Type.STRING },
-            description: "A list of 1-3 short follow-up questions, corrections for typos, or related topics." 
+            description: "A list of 2-3 short, relevant follow-up questions." 
           }
         },
         required: ["answer", "suggestions"]
       };
 
+      // שים לב לשינוי בהנחיות - עכשיו המודל מונחה לסנתז מידע
       const prompt = `
         You are a Senior Expert in Business Licensing (רישוי עסקים) and System Implementation.
-        Your goal is to assist users with the new organizational system.
+        Your goal is to assist users with the new organizational system by synthesizing information from multiple knowledge bases.
         
-        Context Information:
+        Combined Context Information (From various sources):
         ${context}
         
         User Question:
         ${question}
         
         Instructions:
-        1. Answer ONLY based on the provided Context Information.
-        2. Use **Markdown** formatting for clarity:
-           - Use **bold** for key terms.
-           - Use bullet points or numbered lists for steps.
-        3. Be professional, concise, and helpful.
-        4. If the answer is not in the context, state clearly that you don't have that information.
-        5. Respond in Hebrew.
+        1. Analyze ALL the provided Context Information sources.
+        2. Combine and synthesize the relevant information into a single, cohesive, and comprehensive answer.
+        3. Answer ONLY based on the provided context, but integrate the data intelligently.
+        4. Use **Markdown** formatting to create a highly readable and styled response:
+           - Use headings (###) to separate different concepts if applicable.
+           - Use **bold** for key terms, system statuses, or important emphasis.
+           - Use bullet points or numbered lists for steps or multiple details.
+        5. If the answer is completely missing from the context, state clearly that you don't have that information.
+        6. Respond in Hebrew.
       `;
 
       const response = await ai.models.generateContent({
@@ -92,154 +89,24 @@ class GeminiServiceImpl {
     } catch (error: any) {
       console.error("Gemini Q&A Error:", error);
       
-      // Propagate configuration errors
       if (error.message.includes("System Configuration Error")) {
         throw error;
       }
 
-      // Fallback for other errors
+      // הוספנו הצעות ברירת מחדל כדי שהממשק לא יישבר כשיש שגיאת API (כמו שגיאת 429)
       return {
-        answer: "אירעה שגיאה בעיבוד הבקשה. אנא נסה שנית מאוחר יותר.",
-        suggestions: []
+        answer: "אירעה שגיאה בעיבוד הבקשה מול השרת (ייתכן עומס זמני). אנא נסה שנית מאוחר יותר.",
+        suggestions: [
+          "כיצד מבצעים בדיקת הגשה?",
+          "מהם הסטטוסים האפשריים בתיק?",
+          "איך פותחים תקלה חדשה במערכת?"
+        ]
       };
     }
   }
 
-  /**
-   * Analyzes a raw issue description to categorize it.
-   */
-  public async analyzeIssue(description: string): Promise<AiAnalysisResult> {
-    try {
-      const ai = this.getClient();
-
-      const responseSchema: Schema = {
-        type: Type.OBJECT,
-        properties: {
-          summary: { type: Type.STRING, description: "Short summary in Hebrew (5-8 words)" },
-          priority: { 
-            type: Type.STRING, 
-            enum: [IssuePriority.LOW, IssuePriority.MEDIUM, IssuePriority.HIGH, IssuePriority.CRITICAL]
-          },
-          category: {
-            type: Type.STRING,
-            enum: [IssueCategory.UI_UX, IssueCategory.BUG, IssueCategory.PERFORMANCE, IssueCategory.DATA, IssueCategory.OTHER]
-          }
-        },
-        required: ["summary", "priority", "category"]
-      };
-
-      const response = await ai.models.generateContent({
-        model: MODEL_NAME_FAST,
-        contents: `Analyze this issue description: "${description}"`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: responseSchema,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
-        }
-      });
-
-      const jsonText = response.text;
-      if (!jsonText) throw new Error("Empty response");
-
-      return JSON.parse(jsonText) as AiAnalysisResult;
-
-    } catch (error: any) {
-      console.error("Gemini Analysis Error:", error);
-      
-      if (error.message.includes("System Configuration Error")) {
-        throw error;
-      }
-
-      return {
-        summary: description.slice(0, 30) + "...",
-        priority: IssuePriority.MEDIUM,
-        category: IssueCategory.OTHER
-      };
-    }
-  }
-
-  /**
-   * Generates insights for the admin dashboard.
-   */
-  public async generateInsights(issuesContext: string): Promise<string> {
-    try {
-      const ai = this.getClient();
-
-      const response = await ai.models.generateContent({
-        model: MODEL_NAME_FAST,
-        contents: `
-          You are a Data Analyst. Here are recent issues (JSON):
-          ${issuesContext}
-          
-          Provide a short insight (max 3 sentences) in Hebrew about the trends.
-          Use Markdown bolding for emphasis.
-        `,
-        config: {
-            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
-        }
-      });
-
-      return response.text || "לא זוהו תובנות.";
-    } catch (error: any) {
-      console.error("Insights Error:", error);
-      if (error.message.includes("System Configuration Error")) {
-        return "שגיאת תצורה: מפתח API חסר.";
-      }
-      return "שגיאה בייצור תובנות.";
-    }
-  }
-
-  /**
-   * Analyzes query trends.
-   */
-  public async analyzeQueryTrends(queries: UserQuery[]): Promise<QueryTrend[]> {
-    if (!queries.length) return [];
-    
-    try {
-      const ai = this.getClient();
-
-      // Optimization: Send only the text questions to save bandwidth/tokens
-      const textQuestions = queries.slice(0, 50).map(q => q.question);
-
-      const responseSchema: Schema = {
-        type: Type.ARRAY,
-        items: {
-            type: Type.OBJECT,
-            properties: {
-                topic: { type: Type.STRING },
-                count: { type: Type.NUMBER },
-                exampleQuestions: { 
-                    type: Type.ARRAY, 
-                    items: { type: Type.STRING }
-                }
-            },
-            required: ["topic", "count", "exampleQuestions"]
-        }
-      };
-
-      const response = await ai.models.generateContent({
-        model: MODEL_NAME_FAST,
-        contents: `
-          Analyze these questions: ${JSON.stringify(textQuestions)}.
-          Group into common topics, count occurrences, and provide examples.
-        `,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: responseSchema,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
-        }
-      });
-
-      const jsonText = response.text;
-      if (!jsonText) return [];
-      return JSON.parse(jsonText) as QueryTrend[];
-
-    } catch (error: any) {
-      console.error("Trend Analysis Error:", error);
-      return [];
-    }
-  }
+  // ... שאר הפונקציות (analyzeIssue, generateInsights, analyzeQueryTrends) נשארו ללא שינוי
+  // הדבק אותן כאן מהקוד הקודם כדי להשלים את המחלקה
 }
 
-// Export a singleton instance
 export const GeminiService = new GeminiServiceImpl();
