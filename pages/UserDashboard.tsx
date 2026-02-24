@@ -6,6 +6,8 @@ import { GeminiService } from '../services/geminiService';
 import { StorageService } from '../services/storageService';
 import { ChatMessage, Issue, UserQuery, Attachment } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+// הייבוא החדש שהוספנו:
+import { buildSystemContext } from '../utils/contextBuilder';
 
 interface UserDashboardProps {
   activeView: string;
@@ -88,8 +90,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ activeView }) => {
     setIsTyping(true);
 
     try {
-        // Get context from local storage knowledge base
-        const context = StorageService.getFullContextText();
+        // השינוי החשוב: עכשיו אנחנו שואבים את המידע מתוך ה-Context Builder שלנו
+        const context = buildSystemContext();
         
         // AI Call
         const qaResponse = await GeminiService.askQuestion(context, userMsg.text);
