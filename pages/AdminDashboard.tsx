@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
-import { Upload, Plus, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, FileUp, FileJson, FileType, Loader2, Save, MessageSquare, TrendingUp, HelpCircle, Download, Filter, ArrowUpDown, Users, Bell, Search, LayoutList, Activity, Paperclip, Eye, X, Lock, UserCog, ArrowLeft } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Upload, Plus, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, FileUp, FileJson, Loader2, Save, MessageSquare, TrendingUp, HelpCircle, Download, Filter, ArrowUpDown, Users, Bell, Search, LayoutList, Activity, Paperclip, Lock, UserCog, ArrowLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { StorageService } from '../services/storageService';
@@ -73,34 +73,86 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   };
 
   const loadData = async () => {
-    const loadedIssues = StorageService.getIssues();
-    setIssues(loadedIssues);
-    const loadedQueries = StorageService.getQueries();
-    setQueries(loadedQueries);
+    setLoading(true);
+    
+    // 1. טעינת נתונים מקומיים כבסיס
+    let loadedIssues = StorageService.getIssues();
+    let loadedQueries = StorageService.getQueries();
     
     try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?sheet=Knowledge_Base`);
+      // 2. משיכת נתונים מהענן (Google Sheets)
+      const response = await fetch(APPS_SCRIPT_URL);
       const result = await response.json();
       
-      if (result.status === "success" && result.data) {
-        const sheetItems = result.data.map((row: any, index: number) => ({
-          id: `sheet-${index}`,
-          createdAt: new Date(row[0]).getTime() || Date.now(),
-          title: row[1] || '',
-          content: row[2] || '',
-          fileName: row[3] || '',
-          sourceType: row[3] ? 'file' : 'manual'
-        })).filter((item: any) => item.title !== ''); 
+      if (result.status === "success") {
         
-        setKnowledgeItems(sheetItems.reverse()); 
-      } else {
-         setKnowledgeItems(StorageService.getKnowledgeBase()); 
+        // --- שילוב תקלות ---
+        if (result.issues && result.issues.length > 0) {
+          const localIssuesMap = new Map(loadedIssues.map(i => [i.id, i]));
+          let hasNewIssues = false;
+          
+          result.issues.forEach((row: any) => {
+            if (!localIssuesMap.has(row.id)) {
+              loadedIssues.push({
+                id: row.id,
+                createdAt: new Date(row.timestamp).getTime() || Date.now(),
+                username: row.username || '',
+                userRole: row.userRole || '',
+                category: row.category as IssueCategory || IssueCategory.OTHER,
+                priority: row.priority as IssuePriority || IssuePriority.MEDIUM,
+                summary: row.summary || '',
+                description: row.description || '',
+                status: row.status || 'open',
+                treatmentNotes: '',
+                attachments: [] 
+              });
+              hasNewIssues = true;
+            }
+          });
+          
+          if (hasNewIssues) {
+            loadedIssues.sort((a, b) => b.createdAt - a.createdAt);
+            localStorage.setItem('systempilot_issues', JSON.stringify(loadedIssues));
+          }
+        }
+
+        // --- שילוב שאלות ---
+        if (result.queries && result.queries.length > 0) {
+          loadedQueries = result.queries.map((row: any) => ({
+            id: uuidv4(),
+            timestamp: new Date(row.timestamp).getTime() || Date.now(),
+            username: row.username || '',
+            department: row.department || '',
+            question: row.question || '',
+            answer: row.answer || '',
+            isAnswered: true
+          })).reverse();
+        }
+
+        // --- שילוב מאגר ידע ---
+        if (result.knowledge && result.knowledge.length > 0) {
+            const syncedKb = result.knowledge.map((row: any, idx: number) => ({
+                id: `kb-cloud-${idx}`,
+                createdAt: new Date(row.timestamp).getTime() || Date.now(),
+                title: row.title || '',
+                content: row.content || '',
+                fileName: row.fileName || '',
+                sourceType: row.fileName ? 'file' : 'manual'
+            })).reverse();
+            
+            setKnowledgeItems(syncedKb);
+            localStorage.setItem('systempilot_knowledge', JSON.stringify(syncedKb));
+        } else {
+            setKnowledgeItems(StorageService.getKnowledgeBase());
+        }
       }
     } catch (error) {
       console.error("Fetch GET Error:", error);
       setKnowledgeItems(StorageService.getKnowledgeBase());
     }
-    
+
+    setIssues(loadedIssues);
+    setQueries(loadedQueries);
     setLoading(false);
     
     if (activeView === 'dashboard' && loadedIssues.length > 0 && !aiInsight) {
@@ -222,7 +274,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       setEditNotes('');
   };
 
-  const saveEdit = (issue: Issue) => {
+  // --- הפונקציה המשודרגת: למידה אוטומטית מתקלות ---
+  const saveEdit = async (issue: Issue) => {
       const updatedIssue: Issue = {
           ...issue,
           treatmentNotes: editNotes,
@@ -230,6 +283,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       };
       StorageService.updateIssue(updatedIssue);
       setIssues(prev => prev.map(i => i.id === issue.id ? updatedIssue : i));
+      
+      // אם התקלה נסגרה, ויש הערות טיפול מפורטות - הופכים אותה לפריט ידע חדש!
+      if (editStatus === 'closed' && editNotes.trim().length > 5 && issue.status !== 'closed') {
+          const newTitle = `פתרון תקלה: ${issue.summary}`;
+          const newContent = `**תיאור הבעיה המקורית שדווחה:**\n${issue.description}\n\n**דרך הטיפול והפתרון:**\n${editNotes}`;
+          
+          const newItem: KnowledgeItem = {
+              id: uuidv4(),
+              title: newTitle,
+              content: newContent,
+              createdAt: Date.now(),
+              sourceType: 'manual'
+          };
+
+          StorageService.saveKnowledgeItem(newItem);
+          setKnowledgeItems(prev => [newItem, ...prev]);
+
+          try {
+              await fetch(APPS_SCRIPT_URL, {
+                  method: "POST",
+                  body: JSON.stringify({
+                      sheet: "Knowledge_Base",
+                      data: [
+                          new Date().toISOString(),
+                          newItem.title,
+                          newItem.content,
+                          "נלמד אוטומטית ממערכת התקלות"
+                      ]
+                  })
+              });
+              alert("🤖 מעולה! הבוט למד משהו חדש. הפתרון שלך נוסף אוטומטית למאגר הידע של המערכת.");
+          } catch (error) {
+              console.error("Auto-Knowledge Sync Error:", error);
+          }
+      }
+
       setEditingIssue(null);
   };
 
