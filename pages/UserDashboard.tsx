@@ -516,7 +516,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ activeView }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="שאל כל דבר על המערכת החדשה..."
+            placeholder={siteConfig.inputPlaceholder}
             className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-slate-800 placeholder-slate-400"
           />
           <button
