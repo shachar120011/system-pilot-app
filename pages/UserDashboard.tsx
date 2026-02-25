@@ -8,6 +8,7 @@ import { ChatMessage, Issue, UserQuery, Attachment } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 // הייבוא החדש שהוספנו:
 import { buildSystemContext } from '../utils/contextBuilder';
+import { siteConfig } from '../config';
 
 interface UserDashboardProps {
   activeView: string;
