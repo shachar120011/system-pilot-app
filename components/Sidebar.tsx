@@ -1,163 +1,117 @@
 import React from 'react';
-import { LayoutDashboard, MessageSquareWarning, Search, ShieldCheck, BookOpen, ClipboardList, MessageCircleQuestion, ChevronsRight, ChevronsLeft, User, UserCog } from 'lucide-react';
-import { Role } from '../types';
+import { MessageSquare, AlertTriangle, BookOpen, Shield, LogOut, Activity } from 'lucide-react';
+import { siteConfig } from '../config'; // הייבוא של קובץ ההגדרות שלנו!
 
 interface SidebarProps {
-  currentRole: Role;
-  setRole: (role: Role) => void;
   activeView: string;
   setActiveView: (view: string) => void;
-  isCollapsed: boolean;
-  toggleSidebar: () => void;
+  isAdmin: boolean;
+  setIsAdmin: (isAdmin: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
-  currentRole, 
-  setRole, 
-  activeView, 
-  setActiveView,
-  isCollapsed,
-  toggleSidebar
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isAdmin, setIsAdmin }) => {
   return (
-    <div 
-      className={`bg-slate-900 text-white flex flex-col h-screen transition-all duration-300 shadow-xl fixed right-0 z-50 ${
-        isCollapsed ? 'w-20' : 'w-20 md:w-64'
-      }`}
-    >
-      {/* Header / Logo */}
-      <div className="p-6 flex items-center justify-center md:justify-start gap-3 border-b border-slate-700 relative">
-        <div className="bg-blue-600 p-2 rounded-lg shrink-0">
-          <ShieldCheck size={24} className="text-white" />
+    <div className="w-64 bg-slate-900 text-white flex flex-col h-full shadow-2xl relative z-20">
+      {/* אזור המיתוג - שואב נתונים אוטומטית מקובץ הקונפיגורציה */}
+      <div className="p-6 border-b border-slate-800">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-indigo-500 p-2 rounded-xl shadow-lg shadow-indigo-500/30">
+            <Shield size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              {siteConfig.platformName}
+            </h1>
+          </div>
         </div>
-        
-        <div className={`flex flex-col transition-all duration-300 ${
-            isCollapsed ? 'w-0 opacity-0 hidden' : 'hidden md:flex w-auto opacity-100'
-        }`}>
-            <span className="text-xl font-bold whitespace-nowrap overflow-hidden leading-tight">
-                Inactu
-            </span>
-            <span className="text-xs text-slate-400 whitespace-nowrap font-medium">
-                רישוי עסקים
-            </span>
+        <div className="text-xs font-medium text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700 inline-block mt-2">
+          {siteConfig.clientName} | {siteConfig.clientSystemName}
         </div>
-        
-        {/* Toggle Button */}
-        <button 
-            onClick={toggleSidebar}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-full p-1 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors hidden md:flex"
-        >
-            {isCollapsed ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />}
-        </button>
       </div>
 
-      {/* Navigation Links */}
-      <div className="flex-1 py-6 flex flex-col gap-2 px-3 overflow-y-auto overflow-x-hidden">
-        {currentRole === Role.USER ? (
+      {/* תפריט ניווט */}
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {!isAdmin ? (
           <>
             <button
-              onClick={() => setActiveView('search')}
-              title={isCollapsed ? "עזרה וחיפוש" : ""}
-              className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                activeView === 'search' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : 'md:justify-start justify-center'}`}
+              onClick={() => setActiveView('chat')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                activeView === 'chat' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              }`}
             >
-              <Search size={22} className="shrink-0" />
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'hidden' : 'hidden md:block'
-              }`}>עזרה וחיפוש</span>
+              <MessageSquare size={20} />
+              עוזר וירטואלי (AI)
             </button>
             <button
               onClick={() => setActiveView('report')}
-              title={isCollapsed ? "דיווח על תקלה" : ""}
-              className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                activeView === 'report' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : 'md:justify-start justify-center'}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                activeView === 'report' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              }`}
             >
-              <MessageSquareWarning size={22} className="shrink-0" />
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'hidden' : 'hidden md:block'
-              }`}>דיווח על תקלה</span>
+              <AlertTriangle size={20} />
+              דיווח תקלה מורכבת
             </button>
           </>
         ) : (
           <>
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-4 px-4">ניהול מערכת</div>
             <button
               onClick={() => setActiveView('dashboard')}
-              title={isCollapsed ? "לוח בקרה" : ""}
-              className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                activeView === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : 'md:justify-start justify-center'}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                activeView === 'dashboard' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
+              }`}
             >
-              <LayoutDashboard size={22} className="shrink-0" />
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'hidden' : 'hidden md:block'
-              }`}>לוח בקרה</span>
+              <Activity size={20} />
+              לוח בקרה מרכזי
             </button>
             <button
               onClick={() => setActiveView('reports')}
-              title={isCollapsed ? "דוח בקרה (תקלות)" : ""}
-              className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                activeView === 'reports' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : 'md:justify-start justify-center'}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                activeView === 'reports' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
+              }`}
             >
-              <ClipboardList size={22} className="shrink-0" />
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'hidden' : 'hidden md:block'
-              }`}>דוח בקרה (תקלות)</span>
+              <AlertTriangle size={20} />
+              ניהול תקלות
             </button>
             <button
               onClick={() => setActiveView('queries')}
-              title={isCollapsed ? "תיעוד שאלות" : ""}
-              className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                activeView === 'queries' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : 'md:justify-start justify-center'}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                activeView === 'queries' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
+              }`}
             >
-              <MessageCircleQuestion size={22} className="shrink-0" />
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'hidden' : 'hidden md:block'
-              }`}>תיעוד שאלות</span>
+              <MessageSquare size={20} />
+              יומן שאלות
             </button>
             <button
               onClick={() => setActiveView('knowledge')}
-              title={isCollapsed ? "ניהול ידע" : ""}
-              className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                activeView === 'knowledge' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : 'md:justify-start justify-center'}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                activeView === 'knowledge' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
+              }`}
             >
-              <BookOpen size={22} className="shrink-0" />
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'hidden' : 'hidden md:block'
-              }`}>ניהול ידע</span>
+              <BookOpen size={20} />
+              מאגר ידע ונהלים
             </button>
           </>
         )}
-      </div>
+      </nav>
 
-      {/* Role Switcher */}
-      <div className="p-4 border-t border-slate-700">
-        <div className={`bg-slate-800 rounded-xl p-1 flex ${isCollapsed ? 'flex-col gap-1' : 'flex-row'}`}>
-          <button
-            onClick={() => setRole(Role.USER)}
-            title="משתמש"
-            className={`flex items-center justify-center gap-2 flex-1 text-sm py-2 rounded-lg transition-colors ${
-                currentRole === Role.USER ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <User size={16} />
-            <span className={`${isCollapsed ? 'hidden' : 'hidden md:block'}`}>משתמש</span>
-          </button>
-          <button
-            onClick={() => setRole(Role.ADMIN)}
-            title="מנהל"
-            className={`flex items-center justify-center gap-2 flex-1 text-sm py-2 rounded-lg transition-colors ${
-                currentRole === Role.ADMIN ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <UserCog size={16} />
-            <span className={`${isCollapsed ? 'hidden' : 'hidden md:block'}`}>מנהל</span>
-          </button>
-        </div>
+      {/* אזור תחתון - כניסת מנהל */}
+      <div className="p-4 border-t border-slate-800">
+        <button
+          onClick={() => {
+            if (isAdmin) {
+              setIsAdmin(false);
+              setActiveView('chat');
+            } else {
+              setActiveView('dashboard');
+              setIsAdmin(true);
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all font-medium text-sm border border-slate-700"
+        >
+          {isAdmin ? <LogOut size={16} /> : <Shield size={16} />}
+          {isAdmin ? 'יציאה ממצב מנהל' : 'כניסת מנהל מערכת'}
+        </button>
       </div>
     </div>
   );
