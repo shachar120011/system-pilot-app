@@ -1,15 +1,16 @@
 import React from 'react';
 import { MessageSquare, AlertTriangle, BookOpen, Shield, LogOut, Activity } from 'lucide-react';
-import { siteConfig } from '../config'; // הייבוא של קובץ ההגדרות שלנו!
+import { siteConfig } from '../config'; 
 
 interface SidebarProps {
   activeView: string;
   setActiveView: (view: string) => void;
-  isAdmin: boolean;
-  setIsAdmin: (isAdmin: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isAdmin, setIsAdmin }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
+  // המערכת מזהה אוטומטית אם אנחנו במסך של מנהל
+  const isAdminView = ['dashboard', 'reports', 'queries', 'knowledge'].includes(activeView);
+
   return (
     <div className="w-64 bg-slate-900 text-white flex flex-col h-full shadow-2xl relative z-20">
       {/* אזור המיתוג - שואב נתונים אוטומטית מקובץ הקונפיגורציה */}
@@ -25,13 +26,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isA
           </div>
         </div>
         <div className="text-xs font-medium text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700 inline-block mt-2">
-          {siteConfig.clientName} | {siteConfig.clientSystemName}
+          {siteConfig.clientName}
         </div>
       </div>
 
       {/* תפריט ניווט */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {!isAdmin ? (
+        {!isAdminView ? (
           <>
             <button
               onClick={() => setActiveView('chat')}
@@ -98,19 +99,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isA
       {/* אזור תחתון - כניסת מנהל */}
       <div className="p-4 border-t border-slate-800">
         <button
-          onClick={() => {
-            if (isAdmin) {
-              setIsAdmin(false);
-              setActiveView('chat');
-            } else {
-              setActiveView('dashboard');
-              setIsAdmin(true);
-            }
-          }}
+          onClick={() => setActiveView(isAdminView ? 'chat' : 'dashboard')}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all font-medium text-sm border border-slate-700"
         >
-          {isAdmin ? <LogOut size={16} /> : <Shield size={16} />}
-          {isAdmin ? 'יציאה ממצב מנהל' : 'כניסת מנהל מערכת'}
+          {isAdminView ? <LogOut size={16} /> : <Shield size={16} />}
+          {isAdminView ? 'יציאה ממצב מנהל' : 'כניסת מנהל מערכת'}
         </button>
       </div>
     </div>
