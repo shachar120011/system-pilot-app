@@ -26,17 +26,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div className={`bg-slate-900 text-white flex flex-col h-screen shadow-xl fixed right-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       
       {/* אזור המיתוג העליון (דינמי מתוך config.ts) */}
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between relative">
+      <div className="p-4 border-b border-slate-800 relative">
         {!isCollapsed && (
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="bg-indigo-500 p-2 rounded-xl shadow-lg shrink-0">
-              <Shield size={20} className="text-white" />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-black tracking-tight truncate bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="bg-indigo-500 p-2 rounded-xl shadow-lg shrink-0">
+                <Shield size={20} className="text-white" />
+              </div>
+              <h1 className="text-2xl font-black tracking-tight truncate bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                 {siteConfig.platformName}
               </h1>
-              <span className="text-[10px] text-slate-400 truncate" title={siteConfig.clientSystemName}>
+            </div>
+            
+            {/* התגית היפה של הלקוח! */}
+            <div className="mt-4 text-xs font-medium bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-700 flex flex-col gap-0.5">
+              <span className="text-indigo-300 font-bold truncate" title={siteConfig.clientSystemName}>
+                {siteConfig.clientSystemName}
+              </span>
+              <span className="text-slate-400 text-[11px] truncate" title={siteConfig.clientName}>
                 {siteConfig.clientName}
               </span>
             </div>
@@ -44,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
         
         {isCollapsed && (
-           <div className="mx-auto bg-indigo-500 p-2 rounded-xl shadow-lg shrink-0">
+           <div className="mx-auto bg-indigo-500 p-2 rounded-xl shadow-lg shrink-0 mt-2">
               <Shield size={20} className="text-white" />
             </div>
         )}
@@ -127,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-// קומפוננטת-עזר קטנה כדי לחסוך שכפול של קוד לכפתורים
+// קומפוננטת-עזר
 const NavItem = ({ icon, label, isActive, onClick, isCollapsed }: { icon: React.ReactNode, label: string, isActive: boolean, onClick: () => void, isCollapsed: boolean }) => (
   <button
     onClick={onClick}
