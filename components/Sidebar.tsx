@@ -35,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             isCollapsed ? 'w-0 opacity-0 hidden' : 'hidden md:flex w-auto opacity-100'
         }`}>
             <span className="text-xl font-bold whitespace-nowrap overflow-hidden leading-tight">
-                SystemPilot
+                Inactu
             </span>
             <span className="text-xs text-slate-400 whitespace-nowrap font-medium">
                 רישוי עסקים
