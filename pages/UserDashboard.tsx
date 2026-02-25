@@ -48,7 +48,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ activeView }) => {
   // --- Chat State ---
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'model', text: 'היי! אני העוזר האישי שלך להכרת המערכת החדשה. איך אני יכול לעזור לך היום?', timestamp: Date.now() }
+    { id: '1', role: 'model', text: `${siteConfig.botWelcomeTitle} ${siteConfig.botWelcomeSubtitle}`, timestamp: Date.now() }
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
