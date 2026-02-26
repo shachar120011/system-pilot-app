@@ -12,7 +12,7 @@ interface SidebarProps {
   toggleSidebar: () => void;
 }
 
-// הגדרת הטיפוסים עבור כפתורי הניווט למניעת שגיאות Build
+// קומפוננטת עזר חכמה לכפתורי הניווט (NavItem)
 interface NavItemProps {
   icon: React.ReactNode;
   label: string;
@@ -24,11 +24,11 @@ interface NavItemProps {
 const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, isCollapsed }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all font-medium whitespace-nowrap ${
+    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium whitespace-nowrap ${
       isActive 
-        ? 'bg-brand-600 text-white shadow-md shadow-brand-900/20' 
-        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-    } ${isCollapsed ? 'justify-center px-0' : 'flex-row-reverse'}`}
+        ? 'bg-white text-slate-900 shadow-md shadow-purple-900/10' // כפתור פעיל: לבן ומובלט
+        : 'text-purple-100 hover:bg-white/10' // כפתור רגיל: טקסט בהיר ורקע שקוף
+    } ${isCollapsed ? 'justify-center px-0' : 'flex-row-reverse'}`} // תמיכה בעברית
     title={isCollapsed ? label : undefined}
   >
     {icon}
@@ -47,57 +47,63 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isAdmin = currentRole === Role.ADMIN;
 
   return (
-    <div className={`bg-slate-900 text-white flex flex-col h-screen shadow-xl fixed right-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+    // הסיידבר הופך לסגול עמוק ומעוגל, בדיוק כמו בעיצוב שלך
+    <div className={`bg-[#432A61] text-white flex flex-col h-screen shadow-2xl fixed right-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       
-      {/* אזור המיתוג העליון - לוגו Inactu */}
-      <div className="p-8 border-b border-slate-800 relative flex flex-col items-center">
+      {/* אזור המיתוג העליון: לוגו גדול ומרכזי בלבד */}
+      <div className="p-8 border-b border-white/10 relative flex flex-col items-center">
         {!isCollapsed ? (
           <div className="flex flex-col items-center w-full">
-            <div className="mb-6">
+            {/* הלוגו הגדול מחליף את הכותרת הכפולה - מוגבה ומוגדל */}
+            <div className="mb-6 transform hover:scale-105 transition-transform duration-300">
               {siteConfig.logoUrl ? (
                 <img 
                   src={siteConfig.logoUrl} 
                   alt="Inactu Logo" 
-                  className="w-40 h-auto object-contain drop-shadow-2xl"
+                  className="w-40 h-auto object-contain drop-shadow-2xl" // הגדלה ל-w-40
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               ) : (
-                <div className="bg-brand-500 p-4 rounded-2xl shadow-lg">
+                <div className="bg-white/10 p-4 rounded-2xl shadow-lg shrink-0">
                   <Shield size={40} className="text-white" />
                 </div>
               )}
             </div>
             
-            <div className="w-full text-center bg-slate-800/40 px-3 py-2.5 rounded-xl border border-slate-700/50 flex flex-col gap-1">
-              <span className="text-brand-300 font-bold text-[13px] tracking-wide">
-                {siteConfig.clientSystemName}
+            {/* תגית שם המערכת והלקוח מעוצבת בצורה נקייה */}
+            <div className="w-full text-center bg-white/5 px-3 py-2.5 rounded-xl border border-white/10 flex flex-col gap-1">
+              <span className="text-white font-bold text-[13px] tracking-wide">
+                {cite: siteConfig.clientSystemName}
               </span>
-              <span className="text-slate-400 text-[10px] uppercase tracking-widest opacity-80 text-center">
-                {siteConfig.clientName}
+              <span className="text-purple-200 text-[10px] uppercase tracking-widest opacity-80 text-center">
+                {cite: siteConfig.clientName}
               </span>
             </div>
           </div>
         ) : (
+          /* מצב מכווץ (Collapsed) */
           <div className="mx-auto mt-2 shrink-0">
              {siteConfig.logoUrl ? (
-               <img src={siteConfig.logoUrl} alt="Logo" className="w-10 h-10 object-contain" />
+               <img src={cite: siteConfig.logoUrl} alt="Logo" className="w-10 h-10 object-contain" />
              ) : (
-               <div className="bg-brand-500 p-2 rounded-xl">
+               <div className="bg-white/10 p-2 rounded-xl">
                  <Shield size={20} className="text-white" />
                </div>
              )}
            </div>
         )}
 
+        {/* כפתור כיווץ/הרחבה */}
         <button 
           onClick={toggleSidebar} 
-          className="p-1.5 hover:bg-slate-800 rounded-full absolute -left-4 top-8 bg-slate-800 border border-slate-700 z-50 hidden md:flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-lg"
+          className="p-1.5 hover:bg-white/10 rounded-full absolute -left-4 top-8 bg-[#432A61] border border-white/10 z-50 hidden md:flex items-center justify-center text-purple-200 hover:text-white transition-all shadow-lg"
         >
-          <ChevronRight size={18} className={`transform transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+          <ChevronRight size={18} className={`transform transition-transform ${cite: isCollapsed ? 'rotate-180' : ''}`} />
         </button>
       </div>
 
-      <nav className="flex-1 py-4 flex flex-col gap-2 px-3 overflow-y-auto overflow-x-hidden">
+      {/* תפריט ניווט */}
+      <nav className="flex-1 py-6 flex flex-col gap-3 px-4 overflow-y-auto overflow-x-hidden">
         {!isAdmin ? (
           <>
             <NavItem 
@@ -117,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </>
         ) : (
           <>
-            {!isCollapsed && <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-2 px-2 text-right">ניהול מערכת</div>}
+            {!isCollapsed && <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider mb-1 mt-4 px-3 text-right">ניהול מערכת</div>}
             <NavItem 
               icon={<Activity size={20} />} 
               label="לוח בקרה" 
@@ -150,10 +156,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </nav>
 
-      <div className="p-3 border-t border-slate-800">
+      {/* אזור תחתון: החלפת תפקיד (Role) */}
+      <div className="p-4 border-t border-white/10">
         <button
           onClick={() => setRole(isAdmin ? Role.USER : Role.ADMIN)}
-          className={`w-full flex items-center justify-center gap-2 px-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all font-medium text-sm border border-slate-700 ${isCollapsed ? 'px-0' : ''}`}
+          className={`w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white/5 hover:bg-white/10 text-purple-100 rounded-xl transition-all font-medium text-sm border border-white/10 ${isCollapsed ? 'px-0' : ''}`}
         >
           {isAdmin ? <LogOut size={18} /> : <Shield size={18} />}
           {!isCollapsed && <span className="text-right">{isAdmin ? 'יציאה מניהול' : 'כניסת מנהל'}</span>}
