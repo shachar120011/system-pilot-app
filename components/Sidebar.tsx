@@ -30,15 +30,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!isCollapsed && (
           <div className="flex flex-col">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="bg-indigo-500 p-2 rounded-xl shadow-lg shrink-0">
-                <Shield size={20} className="text-white" />
-              </div>
+              {/* הצגת לוגו מתיקיית public או אייקון ברירת מחדל */}
+              {siteConfig.logoUrl ? (
+                <img 
+                  src={siteConfig.logoUrl} 
+                  alt="Logo" 
+                  className="w-10 h-10 object-contain rounded-lg shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <div className="bg-indigo-500 p-2 rounded-xl shadow-lg shrink-0">
+                  <Shield size={20} className="text-white" />
+                </div>
+              )}
               <h1 className="text-2xl font-black tracking-tight truncate bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                 {siteConfig.platformName}
               </h1>
             </div>
             
-            {/* התגית היפה של הלקוח! */}
+            {/* תגית שם המערכת והלקוח */}
             <div className="mt-4 text-xs font-medium bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-700 flex flex-col gap-0.5">
               <span className="text-indigo-300 font-bold truncate" title={siteConfig.clientSystemName}>
                 {siteConfig.clientSystemName}
@@ -51,8 +61,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
         
         {isCollapsed && (
-           <div className="mx-auto bg-indigo-500 p-2 rounded-xl shadow-lg shrink-0 mt-2">
-              <Shield size={20} className="text-white" />
+           <div className="mx-auto mt-2 shrink-0">
+              {siteConfig.logoUrl ? (
+                <img src={siteConfig.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+              ) : (
+                <div className="bg-indigo-500 p-2 rounded-xl shadow-lg">
+                  <Shield size={20} className="text-white" />
+                </div>
+              )}
             </div>
         )}
 
@@ -134,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-// קומפוננטת-עזר
+// קומפוננטת-עזר פנימית
 const NavItem = ({ icon, label, isActive, onClick, isCollapsed }: { icon: React.ReactNode, label: string, isActive: boolean, onClick: () => void, isCollapsed: boolean }) => (
   <button
     onClick={onClick}
