@@ -15,9 +15,9 @@ interface SidebarProps {
 const NavItem = ({ icon, label, isActive, onClick, isCollapsed }: any) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-medium whitespace-nowrap ${
+    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-bold whitespace-nowrap ${
       isActive 
-        ? 'bg-white text-[#432A61] shadow-lg' 
+        ? 'bg-white text-[#432A61] shadow-xl' 
         : 'text-purple-100 hover:bg-white/10'
     } ${isCollapsed ? 'justify-center px-0' : 'flex-row-reverse'}`}
   >
@@ -31,6 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeVi
 
   return (
     <div className={`bg-[#432A61] text-white flex flex-col h-screen shadow-2xl fixed right-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'}`}>
+      
+      {/* אזור המיתוג - לוגו Inactu מוגדל */}
       <div className="p-10 border-b border-white/10 relative flex flex-col items-center">
         {!isCollapsed && (
           <div className="flex flex-col items-center w-full">
