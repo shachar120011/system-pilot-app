@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import { siteConfig } from '../config';
-// שים לב: אם ה-Build נכשל, נסה להחליף בין שתי השורות הבאות (עם או בלי סוגריים מסולסלים)
-import geminiService from '../services/geminiService'; 
+// תיקון קריטי: שימוש בייבוא שמי (Named Import) למניעת שגיאת Build
+import { geminiService } from '../services/geminiService'; 
 
 export const UserDashboard: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -20,6 +20,7 @@ export const UserDashboard: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // קריאה לשירות Gemini המקורי עבור מערכת רישוי עסקים
       const response = await geminiService.generateResponse(query);
       const botMsg = { id: (Date.now() + 1).toString(), text: response, role: 'model' };
       setMessages(prev => [...prev, botMsg]);
@@ -35,11 +36,11 @@ export const UserDashboard: React.FC = () => {
   }, [messages, isLoading]);
 
   return (
-    /* המרחק מימין (pr-80) מוודא שהצאט לא נכנס מתחת לסיידבר */
-    <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 pr-24 md:pr-80 transition-all duration-300">
+    /* pr-72 מבטיח שהתוכן יתמרכז בשטח הנותר ליד הסיידבר */
+    <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 pr-20 md:pr-80 transition-all duration-300">
       <div className="w-full max-w-5xl h-[90vh] flex flex-col bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
         
-        {/* כותרת ממותגת - רישוי עסקים */}
+        {/* כותרת המערכת - רישוי עסקים */}
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-row-reverse">
           <div className="flex items-center gap-4">
             <div className="bg-[#432A61] p-3 rounded-2xl text-white shadow-lg">
@@ -52,7 +53,7 @@ export const UserDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* הודעות צאט */}
+        {/* הודעות הצאט */}
         <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-white text-right">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center opacity-30 text-[#432A61]">
@@ -75,7 +76,7 @@ export const UserDashboard: React.FC = () => {
           <div ref={chatEndRef} />
         </div>
 
-        {/* תיבת קלט */}
+        {/* הזנת הודעה */}
         <div className="p-6 bg-white border-t border-slate-100">
           <form onSubmit={handleSendMessage} className="flex gap-4 max-w-4xl mx-auto">
             <input 
