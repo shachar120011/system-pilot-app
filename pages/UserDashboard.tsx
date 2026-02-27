@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import { siteConfig } from '../config';
-// תיקון קריטי: שימוש בייבוא שמי (Named Import) למניעת שגיאת Build
-import { geminiService } from '../services/geminiService'; 
+// תיקון הייבוא לפי הקוד ששלחת
+import { GeminiService } from '../services/geminiService'; 
 
 export const UserDashboard: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -20,9 +20,9 @@ export const UserDashboard: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // קריאה לשירות Gemini המקורי עבור מערכת רישוי עסקים
-      const response = await geminiService.generateResponse(query);
-      const botMsg = { id: (Date.now() + 1).toString(), text: response, role: 'model' };
+      // שימוש בפונקציה askQuestion מהשירות שלך
+      const result = await GeminiService.askQuestion("", query);
+      const botMsg = { id: (Date.now() + 1).toString(), text: result.answer, role: 'model' };
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
       console.error("Chat Error:", error);
@@ -36,16 +36,14 @@ export const UserDashboard: React.FC = () => {
   }, [messages, isLoading]);
 
   return (
-    /* pr-72 מבטיח שהתוכן יתמרכז בשטח הנותר ליד הסיידבר */
-    <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 pr-20 md:pr-80 transition-all duration-300">
-      <div className="w-full max-w-5xl h-[90vh] flex flex-col bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+    // ה-mr-72 דוחף את הצאט למרכז ומונע ממנו להיבלע מתחת לסיידבר שבימין
+    <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 mr-20 md:mr-72 transition-all duration-300">
+      <div className="w-full max-w-5xl h-[92vh] flex flex-col bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
         
-        {/* כותרת המערכת - רישוי עסקים */}
+        {/* כותרת - רישוי עסקים עיריית ת"א */}
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-row-reverse">
           <div className="flex items-center gap-4">
-            <div className="bg-[#432A61] p-3 rounded-2xl text-white shadow-lg">
-              <Bot size={28} />
-            </div>
+            <div className="bg-[#432A61] p-3 rounded-2xl text-white shadow-lg"><Bot size={28} /></div>
             <div className="text-right">
               <h2 className="text-xl font-black text-[#432A61]">{siteConfig.clientSystemName}</h2>
               <p className="text-xs text-slate-500 font-bold">{siteConfig.clientName}</p>
@@ -53,7 +51,7 @@ export const UserDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* הודעות הצאט */}
+        {/* הודעות צאט */}
         <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-white text-right">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center opacity-30 text-[#432A61]">
@@ -76,16 +74,16 @@ export const UserDashboard: React.FC = () => {
           <div ref={chatEndRef} />
         </div>
 
-        {/* הזנת הודעה */}
+        {/* תיבת קלט */}
         <div className="p-6 bg-white border-t border-slate-100">
-          <form onSubmit={handleSendMessage} className="flex gap-4 max-w-4xl mx-auto">
+          <form onSubmit={handleSendMessage} className="flex gap-4 max-w-4xl mx-auto flex-row-reverse">
             <input 
               value={query} 
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-right outline-none focus:border-[#432A61] shadow-inner"
               placeholder={siteConfig.inputPlaceholder}
             />
-            <button type="submit" className="bg-[#432A61] text-white p-4 rounded-2xl shadow-xl transform active:scale-95 transition-all">
+            <button type="submit" className="bg-[#432A61] text-white p-4 rounded-2xl shadow-xl transition-all">
               <Send size={24} className="rotate-[-45deg]" />
             </button>
           </form>
