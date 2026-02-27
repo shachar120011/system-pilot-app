@@ -17,8 +17,8 @@ const NavItem = ({ icon, label, isActive, onClick, isCollapsed }: { icon: React.
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-medium whitespace-nowrap ${
       isActive 
-        ? 'bg-white text-brand-500 shadow-lg shadow-brand-900/20' 
-        : 'text-brand-100 hover:bg-white/10 hover:text-white'
+        ? 'bg-white text-[#432A61] shadow-lg shadow-purple-900/20' 
+        : 'text-purple-100 hover:bg-white/10 hover:text-white'
     } ${isCollapsed ? 'justify-center px-0' : 'flex-row-reverse'}`}
   >
     {icon}
@@ -30,27 +30,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeVi
   const isAdmin = currentRole === Role.ADMIN;
 
   return (
-    <div className={`bg-brand-500 text-white flex flex-col h-screen shadow-2xl fixed right-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+    <div className={`bg-[#432A61] text-white flex flex-col h-screen shadow-2xl fixed right-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       
-      {/* אזור מיתוג - לוגו גדול ומוגבה */}
-      <div className="p-8 border-b border-white/10 relative flex flex-col items-center justify-center min-h-[180px]">
+      <div className="p-8 border-b border-white/10 relative flex flex-col items-center">
         {!isCollapsed ? (
           <div className="flex flex-col items-center w-full">
             <div className="mb-6 transform hover:scale-105 transition-transform duration-300">
-              <img 
-                src={siteConfig.logoUrl} 
-                alt="Inactu" 
-                className="w-44 h-auto object-contain drop-shadow-2xl" 
-              />
+              {siteConfig.logoUrl ? (
+                <img src={siteConfig.logoUrl} alt="Inactu Logo" className="w-44 h-auto object-contain drop-shadow-2xl" />
+              ) : (
+                <div className="bg-white/10 p-4 rounded-3xl"><Shield size={44} /></div>
+              )}
             </div>
-            
             <div className="w-full text-center bg-white/5 px-3 py-3 rounded-2xl border border-white/10">
-              <span className="text-brand-200 font-bold text-[12px] block tracking-wide uppercase">
-                {siteConfig.clientSystemName}
-              </span>
-              <span className="text-white/60 text-[10px] block mt-1 uppercase tracking-widest">
-                {siteConfig.clientName}
-              </span>
+              <span className="text-purple-200 font-bold text-[13px] block">{siteConfig.clientSystemName}</span>
+              <span className="text-white/60 text-[10px] block mt-1 uppercase tracking-widest">{siteConfig.clientName}</span>
             </div>
           </div>
         ) : (
@@ -59,11 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeVi
           </div>
         )}
 
-        <button 
-          onClick={toggleSidebar} 
-          className="p-1.5 hover:bg-white/20 rounded-full absolute -left-4 top-10 bg-brand-500 border border-white/10 z-50 hidden md:flex items-center justify-center text-white transition-all shadow-xl"
-        >
-          <ChevronRight size={18} className={`transform transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+        <button onClick={toggleSidebar} className="p-1.5 hover:bg-white/20 rounded-full absolute -left-4 top-10 bg-[#432A61] border border-white/10 z-50 hidden md:flex items-center justify-center text-white transition-all shadow-xl">
+          <ChevronRight size={18} className={isCollapsed ? 'rotate-180' : ''} />
         </button>
       </div>
 
@@ -75,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeVi
           </>
         ) : (
           <>
-            {!isCollapsed && <div className="text-[10px] font-bold text-brand-300 uppercase tracking-widest mb-2 px-4 text-right">ניהול מערכת</div>}
+            {!isCollapsed && <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-2 px-4 text-right">ניהול מערכת</div>}
             <NavItem icon={<Activity size={22} />} label="לוח בקרה" isActive={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} isCollapsed={isCollapsed} />
             <NavItem icon={<AlertTriangle size={22} />} label="ניהול תקלות" isActive={activeView === 'reports'} onClick={() => setActiveView('reports')} isCollapsed={isCollapsed} />
             <NavItem icon={<MessageSquare size={22} />} label="יומן שאלות" isActive={activeView === 'queries'} onClick={() => setActiveView('queries')} isCollapsed={isCollapsed} />
@@ -85,10 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeVi
       </nav>
 
       <div className="p-4 border-t border-white/10">
-        <button
-          onClick={() => setRole(isAdmin ? Role.USER : Role.ADMIN)}
-          className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all font-medium text-sm border border-white/10"
-        >
+        <button onClick={() => setRole(isAdmin ? Role.USER : Role.ADMIN)} className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all font-medium text-sm border border-white/10">
           {isAdmin ? <LogOut size={20} /> : <Shield size={20} />}
           {!isCollapsed && <span className="text-right">{isAdmin ? 'יציאה מניהול' : 'כניסת מנהל'}</span>}
         </button>
