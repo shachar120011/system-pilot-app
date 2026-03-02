@@ -100,12 +100,13 @@ export const IssueReporter: React.FC = () => {
           newIssue.username || "אנונימי",             // B: שם מלא
           newIssue.userRole || "",                    // C: מחלקה / תפקיד
           newIssue.description,                       // D: תיאור הבעיה
-          attachments.length > 0 ? "יש קבצים מצורפים" : "", // E: קבצים (כרגע רק טקסט)
+          attachments.length > 0 ? "יש קבצים מצורפים" : "", // E: קבצים
           newIssue.status,                            // F: סטטוס טיפול
           newIssue.category,                          // G: קטגוריה
           newIssue.priority,                          // H: דחיפות
           "",                                         // I: דרך טיפול
-          ""                                          // J: זמן סגירה
+          "",                                         // J: זמן סגירה
+          newIssue.id                                 // K: המזהה הנסתר שלנו! (ID)
       ];
 
       await fetch(APPS_SCRIPT_URL, {
