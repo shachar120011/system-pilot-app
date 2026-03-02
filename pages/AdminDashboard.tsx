@@ -294,7 +294,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
               updatedIssue.category,
               updatedIssue.priority,
               updatedIssue.treatmentNotes || "",
-              updatedIssue.closedAt ? new Date(updatedIssue.closedAt).toISOString() : ""
+              updatedIssue.closedAt ? new Date(updatedIssue.closedAt).toISOString() : "",
+              updatedIssue.id // העמודה החדשה בסוף לזיהוי ודאי!
           ];
 
           await fetch(APPS_SCRIPT_URL, {
@@ -945,3 +946,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     </div>
   );
 };
+
