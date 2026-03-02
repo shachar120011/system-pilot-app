@@ -55,7 +55,7 @@ export const StorageService = {
     return !error;
   },
 
-  // --- ניהול מאגר ידע (Knowledge Base) ---
+  // --- ניהול מאגר ידע ---
   getKnowledgeBase: async (): Promise<KnowledgeItem[]> => {
     const { data, error } = await supabase
       .from('knowledge')
@@ -70,7 +70,7 @@ export const StorageService = {
     }));
   },
 
-  // הפונקציה שחסרה וגורמת לקריסה של הבוט
+  // תיקון השגיאה מה-Console: פונקציה להחזרת כל ההקשר לבוט
   getFullContextText: async (): Promise<string> => {
     const { data, error } = await supabase.from('knowledge').select('title, content');
     if (error || !data) return "";
@@ -86,7 +86,7 @@ export const StorageService = {
     return !error;
   },
 
-  // --- ניהול יומן שאלות (Chat Logs) ---
+  // --- ניהול יומן שאלות ---
   getQueries: async (): Promise<UserQuery[]> => {
     const { data, error } = await supabase.from('chat_logs').select('*').order('created_at', { ascending: false });
     return error ? [] : data.map(item => ({
