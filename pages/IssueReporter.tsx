@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
-import { AlertTriangle, Send, CheckCircle, Paperclip, Bot } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { AlertTriangle, Send, CheckCircle, Paperclip, Bot, X } from 'lucide-react';
 import { siteConfig } from '../config';
 import { StorageService } from '../services/storageService';
 import { GeminiService } from '../services/geminiService';
-import { IssuePriority, IssueCategory, Issue } from '../types';
+import { IssuePriority, IssueCategory, Issue, Attachment } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export const IssueReporter: React.FC = () => {
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [aiStatus, setAiStatus] = useState('');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // טיפול בהעלאת קובץ והמרתו ל-Base64 כדי שיישמר במערכת
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newAttachment: Attachment = {
+        name: file.name,
+        type: file.type,
+        data: reader.result as string
+      };
+      setAttachments(prev => [...prev, newAttachment]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeAttachment = (indexToRemove: number) => {
+    setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +48,6 @@ export const IssueReporter: React.FC = () => {
     let detectedPriority = IssuePriority.MEDIUM;
 
     try {
-      // פרומפט ל-AI לסיווג אוטומטי
       const prompt = `
         נתח את התקלה הבאה שדווחה על ידי עובד.
         נושא: ${summary}
@@ -36,8 +59,6 @@ export const IssueReporter: React.FC = () => {
       `;
 
       const aiResponse = await GeminiService.askQuestion("", prompt);
-      
-      // ניקוי ופיענוח התשובה של ה-AI
       const cleanJson = aiResponse.answer.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(cleanJson);
 
@@ -49,7 +70,6 @@ export const IssueReporter: React.FC = () => {
       }
     } catch (error) {
       console.error("AI Classification failed, using defaults", error);
-      // במקרה של שגיאה ב-AI, נשתמש בברירת המחדל שכבר הוגדרה למעלה
     }
 
     setAiStatus('שומר נתונים במערכת...');
@@ -64,7 +84,7 @@ export const IssueReporter: React.FC = () => {
       createdAt: Date.now(),
       username: 'משתמש מחובר', 
       userRole: 'עובד עירייה',
-      attachments: []
+      attachments: attachments // שמירת הקבצים המצורפים!
     };
 
     StorageService.saveIssue(newIssue);
@@ -73,6 +93,7 @@ export const IssueReporter: React.FC = () => {
     setIsSuccess(true);
     setSummary('');
     setDescription('');
+    setAttachments([]);
     setAiStatus('');
     
     setTimeout(() => setIsSuccess(false), 3000);
@@ -125,9 +146,37 @@ export const IssueReporter: React.FC = () => {
                 />
               </div>
 
+              {/* תצוגת קבצים שנבחרו */}
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {attachments.map((att, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-sm">
+                      <Paperclip size={14} />
+                      <span className="max-w-[150px] truncate">{att.name}</span>
+                      <button type="button" onClick={() => removeAttachment(idx)} className="text-indigo-400 hover:text-red-500 transition-colors">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="pt-4 flex flex-col md:flex-row items-center justify-between border-t border-slate-100 gap-4">
-                <button type="button" className="text-slate-400 hover:text-[#432A61] flex items-center gap-2 text-sm font-bold transition-colors w-full md:w-auto justify-center">
-                  <Paperclip size={18} /> צרף צילום מסך
+                
+                {/* כפתור צירוף קובץ אמיתי */}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  className="hidden" 
+                  accept="image/*,.pdf,.doc,.docx"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-slate-500 hover:text-[#432A61] bg-slate-50 hover:bg-indigo-50 px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold transition-colors w-full md:w-auto justify-center border border-slate-200"
+                >
+                  <Paperclip size={18} /> צרף קובץ / צילום מסך
                 </button>
                 
                 <div className="w-full md:w-auto flex flex-col items-end">
