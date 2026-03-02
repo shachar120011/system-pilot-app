@@ -16,7 +16,7 @@ export const StorageService = {
       createdAt: new Date(item.created_at).getTime(),
       username: item.username || 'אנונימי',
       userRole: item.department || '', 
-      summary: item.summary || item.category || 'תקלה', // הגנה למקרה שאין תקציר
+      summary: item.summary || item.category || 'תקלה',
       description: item.description || '',
       category: item.category || 'אחר',
       priority: item.priority || 'בינונית',
@@ -55,7 +55,7 @@ export const StorageService = {
     return !error;
   },
 
-  // --- ניהול מאגר ידע ---
+  // --- ניהול מאגר ידע (Knowledge Base) ---
   getKnowledgeBase: async (): Promise<KnowledgeItem[]> => {
     const { data, error } = await supabase
       .from('knowledge')
@@ -70,6 +70,7 @@ export const StorageService = {
     }));
   },
 
+  // הפונקציה שחסרה וגורמת לקריסה של הבוט
   getFullContextText: async (): Promise<string> => {
     const { data, error } = await supabase.from('knowledge').select('title, content');
     if (error || !data) return "";
@@ -85,7 +86,7 @@ export const StorageService = {
     return !error;
   },
 
-  // --- ניהול יומן שאלות ---
+  // --- ניהול יומן שאלות (Chat Logs) ---
   getQueries: async (): Promise<UserQuery[]> => {
     const { data, error } = await supabase.from('chat_logs').select('*').order('created_at', { ascending: false });
     return error ? [] : data.map(item => ({
