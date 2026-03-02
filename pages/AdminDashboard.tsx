@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-// תיקון קריטי: המילה User התווספה לשורה הבאה!
 import { Upload, Plus, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, FileUp, FileJson, Loader2, Save, MessageSquare, TrendingUp, HelpCircle, Download, Filter, ArrowUpDown, Users, User, Bell, Search, LayoutList, Activity, Paperclip, Lock, UserCog, ArrowLeft, Target, Timer, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -335,6 +334,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   }, [issues]);
 
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
+  
   const screenWrapperClass = "h-screen w-full overflow-y-auto bg-slate-50 p-4 md:p-8 animate-fadeIn text-right rtl";
 
   if (!isAuthenticated) {
@@ -557,6 +557,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       );
   }
 
+  // --- תצוגת דאשבורד סקירה כללית ---
   return (
     <div className={screenWrapperClass} dir="rtl">
       <div className="max-w-7xl mx-auto w-full pb-20">
@@ -695,6 +696,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                             <div className="text-center font-black text-indigo-600">{u.total} <span className="text-[10px] text-slate-400 block font-normal">אינטראקציות</span></div>
                           </div>
                         ))}
+                      </div>
+                  </div>
+              </div>
+          )}
+
+          {/* כאן התיקון! חלון הטיפול בתקלה הוחזר למסך הדאשבורד */}
+          {editingIssue && activeView === 'dashboard' && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+                  <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-lg text-right border border-slate-100" dir="rtl">
+                      <div className="flex justify-between items-center mb-6">
+                          <h2 className="text-2xl font-bold text-slate-800">טיפול בתקלה</h2>
+                          <button onClick={() => setEditingIssue(null)} className="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><X size={20}/></button>
+                      </div>
+                      
+                      <div className="space-y-5">
+                          <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                  <label className="block text-sm font-bold text-slate-700 mb-1">סטטוס</label>
+                                  <select value={editStatus} onChange={e => setEditStatus(e.target.value as any)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                      <option value="open">פתוח</option><option value="in_progress">בטיפול</option><option value="closed">סגור</option>
+                                  </select>
+                              </div>
+                              <div>
+                                  <label className="block text-sm font-bold text-slate-700 mb-1">דחיפות</label>
+                                  <select value={editPriority} onChange={e => setEditPriority(e.target.value as any)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                      {Object.values(IssuePriority).map(prio => <option key={prio} value={prio}>{prio}</option>)}
+                                  </select>
+                              </div>
+                          </div>
+                          
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">קטגוריה</label>
+                              <select value={editCategory} onChange={e => setEditCategory(e.target.value as any)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                  {Object.values(IssueCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                              </select>
+                          </div>
+
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">הערות טיפול / פתרון</label>
+                              <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl h-28 outline-none resize-none" placeholder="פרט את פעולות הטיפול שבוצעו..." />
+                          </div>
+
+                          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer bg-indigo-50 p-3 rounded-xl">
+                              <input type="checkbox" checked={saveToKnowledgeBase} onChange={e => setSaveToKnowledgeBase(e.target.checked)} className="w-4 h-4 text-indigo-600 rounded border-gray-300" />
+                              <span className="font-medium text-indigo-800">שמור פתרון למאגר הידע (AI)</span>
+                          </label>
+
+                          <button onClick={() => saveEdit(issues.find(i=>i.id===editingIssue)!)} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 transition-all">
+                              <Save size={20} /> עדכן תקלה ושמור
+                          </button>
                       </div>
                   </div>
               </div>
