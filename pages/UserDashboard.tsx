@@ -1,30 +1,45 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, LogIn } from 'lucide-react';
+import { Send, Bot, User, Loader2, LogIn, LogOut } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { siteConfig } from '../config';
 import { GeminiService } from '../services/geminiService';
-// ייבוא קריטי: מאפשר לבוט לשלוף את נהלי העירייה ממאגר הידע
 import { StorageService } from '../services/storageService';
 
 export const UserDashboard: React.FC = () => {
-  // --- States עבור האימות ---
   const [userName, setUserName] = useState('');
   const [department, setDepartment] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // --- States עבור הצ'אט ---
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // --- פונקציות ---
+  // בדיקה אם המשתמש כבר מחובר ממסך אחר
+  useEffect(() => {
+    const savedUser = localStorage.getItem('inactu_user');
+    if (savedUser) {
+      const { name, dept } = JSON.parse(savedUser);
+      setUserName(name);
+      setDepartment(dept);
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (userName.trim() && department.trim()) {
+      localStorage.setItem('inactu_user', JSON.stringify({ name: userName, dept: department }));
       setIsAuthenticated(true);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('inactu_user');
+    setIsAuthenticated(false);
+    setUserName('');
+    setDepartment('');
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -37,13 +52,9 @@ export const UserDashboard: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // תיקון: שולפים את כל מאגר הידע מהאחסון המקומי
       const systemContext = StorageService.getFullContextText();
-      
-      // שולחים לבוט גם את השאלה וגם את כל הידע ששלפנו!
       const result = await GeminiService.askQuestion(systemContext, query);
       
-      // שומרים את השאלה ביומן השאלות של המנהל
       StorageService.saveQuery({
         id: Date.now().toString(),
         timestamp: Date.now(),
@@ -69,7 +80,6 @@ export const UserDashboard: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  // --- רינדור מסך אימות (התחברות) ---
   if (!isAuthenticated) {
     return (
       <div className="flex-1 min-h-screen bg-slate-50 flex justify-center items-center p-6 w-full">
@@ -85,23 +95,11 @@ export const UserDashboard: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2 text-right">שם מלא</label>
-              <input 
-                type="text" 
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] transition-all"
-                placeholder="הזן את שמך..."
-                required
-              />
+              <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] transition-all" placeholder="הזן את שמך..." required />
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2 text-right">מחלקה</label>
-              <select 
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] appearance-none cursor-pointer transition-all"
-                required
-              >
+              <select value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] appearance-none cursor-pointer transition-all" required >
                 <option value="" disabled>בחר מחלקה...</option>
                 <option value="מרכז שירות">מרכז שירות</option>
                 <option value="ביקורת עסקים">ביקורת עסקים</option>
@@ -110,43 +108,33 @@ export const UserDashboard: React.FC = () => {
                 <option value="הנהלה">הנהלה</option>
               </select>
             </div>
-            <button 
-              type="submit" 
-              className="w-full bg-[#432A61] text-white py-3.5 rounded-xl font-bold shadow-lg shadow-[#432A61]/30 hover:bg-[#2d1b42] transition-all mt-6"
-            >
-              הכנס למערכת
-            </button>
+            <button type="submit" className="w-full bg-[#432A61] text-white py-3.5 rounded-xl font-bold shadow-lg shadow-[#432A61]/30 hover:bg-[#2d1b42] transition-all mt-6">הכנס למערכת</button>
           </form>
         </div>
       </div>
     );
   }
 
-  // --- רינדור מסך הצ'אט (לאחר התחברות) ---
   return (
     <div className="flex-1 h-screen bg-slate-50 flex justify-center items-center p-4 md:p-8 w-full overflow-hidden">
       <div className="w-full max-w-5xl h-full max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative z-10">
-        
-        {/* כותרת הצ'אט */}
         <div className="p-5 md:p-6 border-b border-slate-100 bg-white flex items-center justify-between flex-row-reverse z-20 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="bg-gradient-to-br from-[#432A61] to-[#603b8e] p-3 rounded-2xl text-white shadow-md">
               <Bot size={26} />
             </div>
             <div className="text-right">
-              {/* הפונט תוקן ל-font-bold במקום font-black */}
               <h2 className="text-xl font-bold text-[#432A61] tracking-wide">{siteConfig.clientSystemName}</h2>
               <p className="text-xs text-slate-500 font-medium">{siteConfig.clientName}</p>
             </div>
           </div>
-          {/* מציג את פרטי המשתמש המחובר */}
           <div className="hidden md:flex items-center gap-2 text-slate-600 bg-slate-50 px-4 py-2 rounded-full border border-slate-200 flex-row-reverse">
              <User size={16} className="text-[#432A61]" />
              <span className="text-sm font-medium">{userName} <span className="opacity-50 mx-1">|</span> {department}</span>
+             <button onClick={handleLogout} className="mr-2 text-red-500 hover:text-red-700 transition-colors" title="התנתק"><LogOut size={14}/></button>
           </div>
         </div>
 
-        {/* אזור ההודעות */}
         <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto bg-slate-50/50 text-right">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center opacity-40 text-[#432A61] animate-fadeIn">
@@ -157,48 +145,27 @@ export const UserDashboard: React.FC = () => {
           )}
           {messages.map((m) => (
             <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
-              <div className={`p-5 rounded-2xl max-w-[85%] md:max-w-[75%] text-[15px] leading-relaxed shadow-sm ${
-                m.role === 'user' 
-                  ? 'bg-gradient-to-l from-[#432A61] to-[#55357a] text-white rounded-br-none' 
-                  : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
-              }`}>
-                {/* תיקון: הצגת התשובה של הבוט באמצעות Markdown כדי שתראה יפה */}
+              <div className={`p-5 rounded-2xl max-w-[85%] md:max-w-[75%] text-[15px] leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-gradient-to-l from-[#432A61] to-[#55357a] text-white rounded-br-none' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'}`}>
                 {m.role === 'model' ? (
-                  <div className="prose prose-sm prose-slate rtl text-right max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
-                  </div>
-                ) : (
-                  m.text
-                )}
+                  <div className="prose prose-sm prose-slate rtl text-right max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown></div>
+                ) : ( m.text )}
               </div>
             </div>
           ))}
           {isLoading && (
             <div className="flex justify-start px-4 animate-fadeIn">
               <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-3 text-slate-500 text-sm font-medium">
-                <Loader2 size={18} className="animate-spin text-[#432A61]" />
-                המערכת מנתחת נתונים ומקלידה תשובה...
+                <Loader2 size={18} className="animate-spin text-[#432A61]" /> המערכת מנתחת נתונים ומקלידה תשובה...
               </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
-        {/* תיבת קלט הצ'אט */}
         <div className="p-4 md:p-6 bg-white border-t border-slate-100">
           <form onSubmit={handleSendMessage} className="flex gap-3 w-full mx-auto flex-row-reverse relative">
-            <input 
-              value={query} 
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] focus:bg-white transition-all text-slate-700"
-              placeholder={siteConfig.inputPlaceholder}
-              disabled={isLoading}
-            />
-            <button 
-              type="submit" 
-              disabled={isLoading || !query.trim()}
-              className="bg-[#432A61] disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-4 rounded-2xl shadow-md hover:shadow-lg hover:bg-[#2d1b42] transition-all flex items-center justify-center shrink-0"
-            >
+            <input value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] focus:bg-white transition-all text-slate-700" placeholder={siteConfig.inputPlaceholder} disabled={isLoading} />
+            <button type="submit" disabled={isLoading || !query.trim()} className="bg-[#432A61] disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-4 rounded-2xl shadow-md hover:shadow-lg hover:bg-[#2d1b42] transition-all flex items-center justify-center shrink-0">
               <Send size={24} className="rotate-[-180deg]" />
             </button>
           </form>
