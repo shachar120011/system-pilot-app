@@ -1,47 +1,18 @@
-import React from 'react';
-import { MessageSquare, AlertTriangle, BookOpen, Shield, LogOut, Activity, ChevronRight, HelpCircle, Wrench } from 'lucide-react';
-import { siteConfig } from '../config'; 
-import { Role } from '../types';
-
-interface SidebarProps {
-  currentRole: Role;
-  setRole: (role: Role) => void;
-  activeView: string;
-  setActiveView: (view: string) => void;
-  isCollapsed: boolean;
-  toggleSidebar: () => void;
-}
-
-const NavItem = ({ icon, label, isActive, onClick, isCollapsed }: any) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-bold whitespace-nowrap ${
-      isActive 
-        ? 'bg-white text-[#432A61] shadow-xl' 
-        : 'text-purple-100 hover:bg-white/10'
-    } ${isCollapsed ? 'justify-center px-0' : 'flex-row-reverse'}`}
-    title={isCollapsed ? label : undefined}
-  >
-    {icon}
-    {!isCollapsed && <span className="flex-1 text-right">{label}</span>}
-  </button>
-);
-
 export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeView, setActiveView, isCollapsed, toggleSidebar }) => {
   const isAdmin = currentRole === Role.ADMIN;
 
   return (
-    // העיצוב הסגול חזר, יחד עם תיקון ה-relative כדי שהמסך יהיה ממורכז
     <div className={`bg-[#432A61] text-white flex flex-col h-screen shadow-2xl relative z-40 transition-all duration-300 shrink-0 ${isCollapsed ? 'w-20' : 'w-72'}`}>
       
-      {/* אזור המיתוג - הלוגו החדש שלך */}
-      <div className="p-6 border-b border-white/10 relative flex flex-col items-center min-h-[160px] justify-center">
+      {/* אזור המיתוג - מוקטן, מוצמד למעלה וקומפקטי יותר */}
+      <div className="p-4 pt-6 pb-4 border-b border-white/10 relative flex flex-col items-center">
         {!isCollapsed && (
           <div className="flex flex-col items-center w-full">
-            <img src={siteConfig.logoUrl} alt="Inactu" className="w-full max-w-[140px] h-auto object-contain mb-6 drop-shadow-xl" />
-            <div className="w-full text-center bg-white/5 px-3 py-3 rounded-2xl border border-white/10">
-              <span className="text-purple-200 font-bold text-[13px] block">{siteConfig.clientSystemName}</span>
-              <span className="text-white/60 text-[10px] block mt-1 uppercase tracking-widest">{siteConfig.clientName}</span>
+            {/* הקטנו את גודל הלוגו ואת הרווח מתחתיו */}
+            <img src={siteConfig.logoUrl} alt="Inactu" className="w-full max-w-[110px] h-auto object-contain mb-3 drop-shadow-xl" />
+            <div className="w-full text-center bg-white/5 px-2 py-2 rounded-xl border border-white/10">
+              <span className="text-purple-200 font-bold text-[12px] block">{siteConfig.clientSystemName}</span>
+              <span className="text-white/60 text-[10px] block uppercase tracking-widest">{siteConfig.clientName}</span>
             </div>
           </div>
         )}
@@ -52,31 +23,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeVi
             </div>
         )}
 
-        {/* כפתור כיווץ הסיידבר */}
+        {/* כפתור כיווץ - הותאם לגובה החדש */}
         <button 
           onClick={toggleSidebar} 
-          className="p-1.5 absolute -left-4 top-12 bg-[#432A61] border border-white/10 rounded-full text-white shadow-xl hover:bg-white/10 transition-colors hidden md:flex"
+          className="p-1.5 absolute -left-4 top-10 bg-[#432A61] border border-white/10 rounded-full text-white shadow-xl hover:bg-white/10 transition-colors hidden md:flex"
         >
           <ChevronRight size={18} className={isCollapsed ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </button>
       </div>
 
-      {/* תפריט ניווט עם כל הלשוניות */}
-      <nav className="flex-1 py-8 flex flex-col gap-3 px-4 overflow-y-auto">
-        {!isAdmin ? (
-          <>
-            <NavItem icon={<MessageSquare size={22} />} label="עוזר וירטואלי (AI)" isActive={activeView === 'search'} onClick={() => setActiveView('search')} isCollapsed={isCollapsed} />
-            <NavItem icon={<AlertTriangle size={22} />} label="דיווח תקלה" isActive={activeView === 'report'} onClick={() => setActiveView('report')} isCollapsed={isCollapsed} />
-          </>
-        ) : (
-          <>
-            {!isCollapsed && <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider mb-1 mt-2 px-2 text-right">ניהול מערכת</div>}
-            <NavItem icon={<Activity size={22} />} label="לוח בקרה" isActive={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} isCollapsed={isCollapsed} />
-            <NavItem icon={<Wrench size={22} />} label="ניהול תקלות" isActive={activeView === 'reports' || activeView === 'issues'} onClick={() => setActiveView('reports')} isCollapsed={isCollapsed} />
-            <NavItem icon={<HelpCircle size={22} />} label="יומן שאלות" isActive={activeView === 'queries' || activeView === 'questions'} onClick={() => setActiveView('queries')} isCollapsed={isCollapsed} />
-            <NavItem icon={<BookOpen size={22} />} label="מאגר ידע" isActive={activeView === 'knowledge'} onClick={() => setActiveView('knowledge')} isCollapsed={isCollapsed} />
-          </>
-        )}
+      {/* תפריט הניווט - הקטנו את הריווח העליון (py-4 במקום py-8) כדי שהלשוניות יתחילו גבוה יותר */}
+      <nav className="flex-1 py-4 flex flex-col gap-2 px-3 overflow-y-auto">
+        {/* ... כאן ממשיך הקוד של הלשוניות (NavItem) שלך ללא שינוי ... */}
       </nav>
 
       {/* יציאה / כניסת מנהל */}
