@@ -1090,7 +1090,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto animate-fadeIn">
+    <div className="p-6 w-full animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
            <h1 className="text-3xl font-bold text-slate-800">לוח בקרה ניהולי</h1>
@@ -1359,3 +1359,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     </div>
   );
 };
+
