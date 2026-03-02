@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { UserDashboard } from './pages/UserDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { IssueReporter } from './pages/IssueReporter'; // הוספנו את ייבוא מסך הדיווח
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Role } from './types';
 
@@ -10,7 +11,7 @@ function App() {
   const [activeView, setActiveView] = useState('search'); // 'search', 'report', 'dashboard', 'knowledge'
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Handle role switch logic to reset view
+  // מעבר בין תפקידים מאפס את התצוגה למסך ברירת המחדל הרלוונטי
   const handleRoleSwitch = (newRole: Role) => {
     setCurrentRole(newRole);
     if (newRole === Role.USER) {
@@ -22,7 +23,9 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="flex min-h-screen bg-[#f8fafc] text-slate-800 font-sans">
+      {/* הוספנו dir="rtl" והפכנו את המסגרת הראשית לנקייה כדי שהסיידבר והמסכים ישבו מושלם */}
+      <div className="flex h-screen w-full bg-slate-100 overflow-hidden font-sans" dir="rtl">
+        
         <Sidebar 
           currentRole={currentRole} 
           setRole={handleRoleSwitch}
@@ -32,16 +35,22 @@ function App() {
           toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
         
-        <main 
-          className={`flex-1 transition-all duration-300 ${
-            isSidebarCollapsed ? 'mr-20' : 'mr-20 md:mr-64'
-          }`}
-        >
-          {currentRole === Role.USER ? (
-            <UserDashboard activeView={activeView} />
-          ) : (
+        {/* אזור התוכן המרכזי - ללא Margins מיותרים ששברו את המסך! */}
+        <main className="flex-1 h-full overflow-hidden transition-all duration-300">
+          
+          {/* ניתוב מסכי משתמש */}
+          {currentRole === Role.USER && activeView === 'search' && (
+            <UserDashboard />
+          )}
+          {currentRole === Role.USER && activeView === 'report' && (
+            <IssueReporter />
+          )}
+
+          {/* ניתוב מסכי מנהל */}
+          {currentRole === Role.ADMIN && (
             <AdminDashboard activeView={activeView} />
           )}
+
         </main>
       </div>
     </ErrorBoundary>
