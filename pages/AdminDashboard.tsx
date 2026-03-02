@@ -439,14 +439,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       );
   }
 
-  if (activeView === 'knowledge') {
+ if (activeView === 'knowledge') {
     return (
       <div className={screenWrapperClass}>
-        <div className="max-w-7xl mx-auto w-full">
+        <div className="max-w-7xl mx-auto w-full pb-20"> {/* הוספתי pb-20 שיתן מרווח נשימה למטה */}
             <h1 className="text-3xl font-bold text-slate-800 mb-6">ניהול מאגר ידע</h1>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start"> {/* items-start מונע מתיחה מיותרת */}
               <div className="lg:col-span-1">
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100 sticky top-0">
+                {/* הסרתי את ה-sticky top-0 שגרם לטופס "להיתקע" ולהחתך */}
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100">
                   <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><Upload size={20} className="text-indigo-600" /> הוספת מידע חדש</h2>
                   <div onClick={() => !isReadingFile && fileInputRef.current?.click()} className={`mb-4 border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all group ${isReadingFile ? 'opacity-50 cursor-wait' : ''}`}>
                     <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.md,.json,.csv,.log,.pdf" onChange={handleFileSelect} disabled={isReadingFile} />
@@ -458,7 +459,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                   <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400">או הזן ידנית</span></div></div>
                   <form onSubmit={handleAddKnowledge}>
                     <div className="mb-4"><label className="block text-sm font-medium text-slate-600 mb-1">נושא / כותרת</label><input type="text" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required /></div>
-                    <div className="mb-4"><label className="block text-sm font-medium text-slate-600 mb-1">תוכן ההדרכה</label><textarea value={newDocContent} onChange={(e) => setNewDocContent(e.target.value)} className="w-full h-40 p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" required /></div>
+                    <div className="mb-4"><label className="block text-sm font-medium text-slate-600 mb-1">תוכן ההדרכה</label><textarea value={newDocContent} onChange={(e) => setNewDocContent(e.target.value)} className="w-full h-32 p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" required /></div>
                     <button type="submit" disabled={isReadingFile || !newDocContent} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-medium rounded-xl transition-all shadow-md flex justify-center items-center gap-2">{uploadSuccess ? <CheckCircle size={20} /> : <Plus size={20} />}{uploadSuccess ? 'נוסף בהצלחה' : 'שמור למאגר'}</button>
                   </form>
                 </div>
@@ -879,3 +880,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     </div>
   );
 };
+
