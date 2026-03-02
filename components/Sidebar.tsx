@@ -1,3 +1,32 @@
+import React from 'react';
+import { MessageSquare, AlertTriangle, BookOpen, Shield, LogOut, Activity, ChevronRight, HelpCircle, Wrench } from 'lucide-react';
+import { siteConfig } from '../config'; 
+import { Role } from '../types';
+
+interface SidebarProps {
+  currentRole: Role;
+  setRole: (role: Role) => void;
+  activeView: string;
+  setActiveView: (view: string) => void;
+  isCollapsed: boolean;
+  toggleSidebar: () => void;
+}
+
+const NavItem = ({ icon, label, isActive, onClick, isCollapsed }: any) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-bold whitespace-nowrap ${
+      isActive 
+        ? 'bg-white text-[#432A61] shadow-xl' 
+        : 'text-purple-100 hover:bg-white/10'
+    } ${isCollapsed ? 'justify-center px-0' : 'flex-row-reverse'}`}
+    title={isCollapsed ? label : undefined}
+  >
+    {icon}
+    {!isCollapsed && <span className="flex-1 text-right">{label}</span>}
+  </button>
+);
+
 export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeView, setActiveView, isCollapsed, toggleSidebar }) => {
   const isAdmin = currentRole === Role.ADMIN;
 
@@ -32,9 +61,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, setRole, activeVi
         </button>
       </div>
 
-      {/* תפריט הניווט - הקטנו את הריווח העליון (py-4 במקום py-8) כדי שהלשוניות יתחילו גבוה יותר */}
+      {/* תפריט הניווט - הקטנו את הריווח העליון (py-4) והוספנו את כל הלשוניות */}
       <nav className="flex-1 py-4 flex flex-col gap-2 px-3 overflow-y-auto">
-        {/* ... כאן ממשיך הקוד של הלשוניות (NavItem) שלך ללא שינוי ... */}
+        {!isAdmin ? (
+          <>
+            <NavItem icon={<MessageSquare size={22} />} label="עוזר וירטואלי (AI)" isActive={activeView === 'search'} onClick={() => setActiveView('search')} isCollapsed={isCollapsed} />
+            <NavItem icon={<AlertTriangle size={22} />} label="דיווח תקלה" isActive={activeView === 'report'} onClick={() => setActiveView('report')} isCollapsed={isCollapsed} />
+          </>
+        ) : (
+          <>
+            {!isCollapsed && <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider mb-1 mt-2 px-2 text-right">ניהול מערכת</div>}
+            <NavItem icon={<Activity size={22} />} label="לוח בקרה" isActive={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} isCollapsed={isCollapsed} />
+            <NavItem icon={<Wrench size={22} />} label="ניהול תקלות" isActive={activeView === 'reports' || activeView === 'issues'} onClick={() => setActiveView('reports')} isCollapsed={isCollapsed} />
+            <NavItem icon={<HelpCircle size={22} />} label="יומן שאלות" isActive={activeView === 'queries' || activeView === 'questions'} onClick={() => setActiveView('queries')} isCollapsed={isCollapsed} />
+            <NavItem icon={<BookOpen size={22} />} label="מאגר ידע" isActive={activeView === 'knowledge'} onClick={() => setActiveView('knowledge')} isCollapsed={isCollapsed} />
+          </>
+        )}
       </nav>
 
       {/* יציאה / כניסת מנהל */}
