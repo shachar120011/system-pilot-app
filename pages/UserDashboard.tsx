@@ -52,10 +52,12 @@ export const UserDashboard: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const systemContext = StorageService.getFullContextText();
-      const result = await GeminiService.askQuestion(systemContext, query);
+      // תיקון: הוספת await כי השירות עכשיו עובד מול ענן (Supabase)
+      const systemContext = await StorageService.getFullContextText();
+      const result = await GeminiService.askQuestion(systemContext, userMsg.text);
       
-      StorageService.saveQuery({
+      // תיקון: הוספת await לשמירת השאילתה ב-Chat_Logs
+      await StorageService.saveQuery({
         id: Date.now().toString(),
         timestamp: Date.now(),
         username: userName,
@@ -69,7 +71,7 @@ export const UserDashboard: React.FC = () => {
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
       console.error("Chat Error:", error);
-      const errorMsg = { id: (Date.now() + 1).toString(), text: "מצטער, הייתה בעיה קטנה בעיבוד הבקשה שלך. אנא נסה שוב.", role: 'model' };
+      const errorMsg = { id: (Date.now() + 1).toString(), text: "מצטער, הייתה בעיה בעיבוד הבקשה שלך. אנא נסה שנית.", role: 'model' };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
@@ -82,7 +84,7 @@ export const UserDashboard: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex-1 min-h-screen bg-slate-50 flex justify-center items-center p-6 w-full">
+      <div className="flex-1 min-h-screen bg-slate-50 flex justify-center items-center p-6 w-full text-right">
         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
           <div className="flex flex-col items-center mb-8">
             <div className="bg-[#432A61] p-4 rounded-full text-white shadow-lg mb-4">
@@ -94,11 +96,11 @@ export const UserDashboard: React.FC = () => {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2 text-right">שם מלא</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">שם מלא</label>
               <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] transition-all" placeholder="הזן את שמך..." required />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2 text-right">מחלקה</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">מחלקה</label>
               <select value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] appearance-none cursor-pointer transition-all" required >
                 <option value="" disabled>בחר מחלקה...</option>
                 <option value="מרכז שירות">מרכז שירות</option>
@@ -116,7 +118,7 @@ export const UserDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 h-screen bg-slate-50 flex justify-center items-center p-4 md:p-8 w-full overflow-hidden">
+    <div className="flex-1 h-screen bg-slate-50 flex justify-center items-center p-4 md:p-8 w-full overflow-hidden text-right">
       <div className="w-full max-w-5xl h-full max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative z-10">
         <div className="p-5 md:p-6 border-b border-slate-100 bg-white flex items-center justify-between flex-row-reverse z-20 shadow-sm">
           <div className="flex items-center gap-4">
@@ -135,7 +137,7 @@ export const UserDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto bg-slate-50/50 text-right">
+        <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto bg-slate-50/50">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center opacity-40 text-[#432A61] animate-fadeIn">
                <Bot size={72} className="mb-4" />
@@ -145,7 +147,7 @@ export const UserDashboard: React.FC = () => {
           )}
           {messages.map((m) => (
             <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
-              <div className={`p-5 rounded-2xl max-w-[85%] md:max-w-[75%] text-[15px] leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-gradient-to-l from-[#432A61] to-[#55357a] text-white rounded-br-none' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'}`}>
+              <div className={`p-5 rounded-2xl max-w-[85%] md:max-w-[75%] text-[15px] shadow-sm ${m.role === 'user' ? 'bg-gradient-to-l from-[#432A61] to-[#55357a] text-white rounded-br-none' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'}`}>
                 {m.role === 'model' ? (
                   <div className="prose prose-sm prose-slate rtl text-right max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown></div>
                 ) : ( m.text )}
