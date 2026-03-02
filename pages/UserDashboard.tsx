@@ -1,14 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, LogIn } from 'lucide-react';
 import { siteConfig } from '../config';
-// תיקון הייבוא לפי הקוד ששלחת
 import { GeminiService } from '../services/geminiService'; 
 
 export const UserDashboard: React.FC = () => {
+  // --- States עבור האימות ---
+  const [userName, setUserName] = useState('');
+  const [department, setDepartment] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // --- States עבור הצ'אט ---
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // --- פונקציות ---
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userName.trim() && department.trim()) {
+      setIsAuthenticated(true);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +33,6 @@ export const UserDashboard: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // שימוש בפונקציה askQuestion מהשירות שלך
       const result = await GeminiService.askQuestion("", query);
       const botMsg = { id: (Date.now() + 1).toString(), text: result.answer, role: 'model' };
       setMessages(prev => [...prev, botMsg]);
@@ -35,12 +47,65 @@ export const UserDashboard: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  // --- רינדור מסך אימות (התחברות) ---
+  if (!isAuthenticated) {
+    return (
+      <div className="flex-1 min-h-screen bg-slate-100 flex justify-center items-center p-6">
+        <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl border border-slate-200">
+          <div className="flex flex-col items-center mb-8">
+            <div className="bg-[#432A61] p-4 rounded-full text-white shadow-lg mb-4">
+              <LogIn size={32} />
+            </div>
+            <h2 className="text-2xl font-black text-[#432A61]">כניסה למערכת</h2>
+            <p className="text-sm text-slate-500">{siteConfig.clientName}</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2 text-right">שם מלא</label>
+              <input 
+                type="text" 
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61]"
+                placeholder="הזן את שמך..."
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2 text-right">מחלקה</label>
+              <select 
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] appearance-none cursor-pointer"
+                required
+              >
+                <option value="" disabled>בחר מחלקה...</option>
+                <option value="licensing">רישוי עסקים</option>
+                <option value="engineering">הנדסה</option>
+                <option value="sanitation">תברואה</option>
+                <option value="management">הנהלה</option>
+              </select>
+            </div>
+            <button 
+              type="submit" 
+              className="w-full bg-[#432A61] text-white py-3 rounded-xl font-bold shadow-lg hover:bg-[#2d1b42] transition-colors mt-6"
+            >
+              הכנס למערכת
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // --- רינדור מסך הצ'אט (לאחר התחברות) ---
   return (
-    // ה-mr-72 דוחף את הצאט למרכז ומונע ממנו להיבלע מתחת לסיידבר שבימין
-    <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 mr-20 md:mr-72 transition-all duration-300">
+    // הסרתי את ה-mr-72 והשתמשתי ב-w-full כדי לתת לו לתפוס את השטח הנותר באופן טבעי
+    <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 w-full">
       <div className="w-full max-w-5xl h-[92vh] flex flex-col bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
         
-        {/* כותרת - רישוי עסקים עיריית ת"א */}
+        {/* כותרת הצ'אט */}
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-row-reverse">
           <div className="flex items-center gap-4">
             <div className="bg-[#432A61] p-3 rounded-2xl text-white shadow-lg"><Bot size={28} /></div>
@@ -49,9 +114,14 @@ export const UserDashboard: React.FC = () => {
               <p className="text-xs text-slate-500 font-bold">{siteConfig.clientName}</p>
             </div>
           </div>
+          {/* מציג את פרטי המשתמש המחובר */}
+          <div className="flex items-center gap-2 text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+             <User size={16} />
+             <span className="text-sm font-medium">{userName} | {department === 'licensing' ? 'רישוי עסקים' : department}</span>
+          </div>
         </div>
 
-        {/* הודעות צאט */}
+        {/* אזור ההודעות */}
         <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-white text-right">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center opacity-30 text-[#432A61]">
@@ -74,7 +144,7 @@ export const UserDashboard: React.FC = () => {
           <div ref={chatEndRef} />
         </div>
 
-        {/* תיבת קלט */}
+        {/* תיבת קלט הצ'אט */}
         <div className="p-6 bg-white border-t border-slate-100">
           <form onSubmit={handleSendMessage} className="flex gap-4 max-w-4xl mx-auto flex-row-reverse">
             <input 
