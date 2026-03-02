@@ -50,14 +50,14 @@ export const UserDashboard: React.FC = () => {
   // --- רינדור מסך אימות (התחברות) ---
   if (!isAuthenticated) {
     return (
-      <div className="flex-1 min-h-screen bg-slate-100 flex justify-center items-center p-6 w-full">
-        <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl border border-slate-200">
+      <div className="flex-1 min-h-screen bg-slate-50 flex justify-center items-center p-6 w-full">
+        <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
           <div className="flex flex-col items-center mb-8">
             <div className="bg-[#432A61] p-4 rounded-full text-white shadow-lg mb-4">
               <LogIn size={32} />
             </div>
-            <h2 className="text-2xl font-black text-[#432A61]">כניסה למערכת</h2>
-            <p className="text-sm text-slate-500">{siteConfig.clientName}</p>
+            <h2 className="text-2xl font-bold text-[#432A61] tracking-wide">כניסה למערכת</h2>
+            <p className="text-sm text-slate-500 font-medium mt-1">{siteConfig.clientName}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -67,7 +67,7 @@ export const UserDashboard: React.FC = () => {
                 type="text" 
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61]"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] transition-all"
                 placeholder="הזן את שמך..."
                 required
               />
@@ -77,7 +77,7 @@ export const UserDashboard: React.FC = () => {
               <select 
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] appearance-none cursor-pointer"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] appearance-none cursor-pointer transition-all"
                 required
               >
                 <option value="" disabled>בחר מחלקה...</option>
@@ -90,7 +90,7 @@ export const UserDashboard: React.FC = () => {
             </div>
             <button 
               type="submit" 
-              className="w-full bg-[#432A61] text-white py-3 rounded-xl font-bold shadow-lg hover:bg-[#2d1b42] transition-colors mt-6"
+              className="w-full bg-[#432A61] text-white py-3.5 rounded-xl font-bold shadow-lg shadow-[#432A61]/30 hover:bg-[#2d1b42] transition-all mt-6"
             >
               הכנס למערכת
             </button>
@@ -102,59 +102,75 @@ export const UserDashboard: React.FC = () => {
 
   // --- רינדור מסך הצ'אט (לאחר התחברות) ---
   return (
-    <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 w-full">
-      <div className="w-full max-w-5xl h-[92vh] flex flex-col bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+    <div className="flex-1 h-screen bg-slate-50 flex justify-center items-center p-4 md:p-8 w-full overflow-hidden">
+      <div className="w-full max-w-5xl h-full max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative z-10">
         
-        {/* כותרת הצ'אט */}
-        <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-row-reverse">
+        {/* כותרת הצ'אט - כאן תוקן הפונט! */}
+        <div className="p-5 md:p-6 border-b border-slate-100 bg-white flex items-center justify-between flex-row-reverse z-20 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="bg-[#432A61] p-3 rounded-2xl text-white shadow-lg"><Bot size={28} /></div>
+            <div className="bg-gradient-to-br from-[#432A61] to-[#603b8e] p-3 rounded-2xl text-white shadow-md">
+              <Bot size={26} />
+            </div>
             <div className="text-right">
-              <h2 className="text-xl font-black text-[#432A61]">{siteConfig.clientSystemName}</h2>
-              <p className="text-xs text-slate-500 font-bold">{siteConfig.clientName}</p>
+              {/* השינוי החשוב: text-xl font-bold tracking-wide במקום font-black */}
+              <h2 className="text-xl font-bold text-[#432A61] tracking-wide">{siteConfig.clientSystemName}</h2>
+              <p className="text-xs text-slate-500 font-medium">{siteConfig.clientName}</p>
             </div>
           </div>
           {/* מציג את פרטי המשתמש המחובר */}
-          <div className="flex items-center gap-2 text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm flex-row-reverse">
-             <User size={16} />
-             <span className="text-sm font-medium">{userName} | {department}</span>
+          <div className="hidden md:flex items-center gap-2 text-slate-600 bg-slate-50 px-4 py-2 rounded-full border border-slate-200 flex-row-reverse">
+             <User size={16} className="text-[#432A61]" />
+             <span className="text-sm font-medium">{userName} <span className="opacity-50 mx-1">|</span> {department}</span>
           </div>
         </div>
 
         {/* אזור ההודעות */}
-        <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-white text-right">
+        <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto bg-slate-50/50 text-right">
           {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center opacity-30 text-[#432A61]">
-               <Bot size={64} className="mb-4" />
-               <p className="text-xl font-bold">{siteConfig.botWelcomeTitle}</p>
+            <div className="h-full flex flex-col items-center justify-center opacity-40 text-[#432A61] animate-fadeIn">
+               <Bot size={72} className="mb-4" />
+               <p className="text-xl font-bold tracking-wide">{siteConfig.botWelcomeTitle}</p>
+               <p className="text-sm mt-2 font-medium">איך אפשר לעזור לך היום?</p>
             </div>
           )}
           {messages.map((m) => (
-            <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`p-5 rounded-[1.8rem] max-w-[80%] text-[16px] leading-relaxed shadow-sm ${
+            <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
+              <div className={`p-5 rounded-2xl max-w-[85%] md:max-w-[75%] text-[15px] leading-relaxed shadow-sm ${
                 m.role === 'user' 
-                  ? 'bg-[#432A61] text-white rounded-br-none' 
-                  : 'bg-slate-100 text-slate-900 border border-slate-200 rounded-bl-none'
+                  ? 'bg-gradient-to-l from-[#432A61] to-[#55357a] text-white rounded-br-none' 
+                  : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
               }`}>
                 {m.text}
               </div>
             </div>
           ))}
-          {isLoading && <div className="flex justify-start px-4"><Loader2 className="animate-spin text-[#432A61]" /></div>}
+          {isLoading && (
+            <div className="flex justify-start px-4 animate-fadeIn">
+              <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-3 text-slate-500 text-sm font-medium">
+                <Loader2 size={18} className="animate-spin text-[#432A61]" />
+                המערכת מקלידה תשובה...
+              </div>
+            </div>
+          )}
           <div ref={chatEndRef} />
         </div>
 
         {/* תיבת קלט הצ'אט */}
-        <div className="p-6 bg-white border-t border-slate-100">
-          <form onSubmit={handleSendMessage} className="flex gap-4 max-w-4xl mx-auto flex-row-reverse">
+        <div className="p-4 md:p-6 bg-white border-t border-slate-100">
+          <form onSubmit={handleSendMessage} className="flex gap-3 w-full mx-auto flex-row-reverse relative">
             <input 
               value={query} 
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-right outline-none focus:border-[#432A61] shadow-inner"
+              className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-right outline-none focus:border-[#432A61] focus:ring-1 focus:ring-[#432A61] focus:bg-white transition-all text-slate-700"
               placeholder={siteConfig.inputPlaceholder}
+              disabled={isLoading}
             />
-            <button type="submit" className="bg-[#432A61] text-white p-4 rounded-2xl shadow-xl hover:bg-[#2d1b42] transition-colors">
-              <Send size={24} className="rotate-[-45deg]" />
+            <button 
+              type="submit" 
+              disabled={isLoading || !query.trim()}
+              className="bg-[#432A61] disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-4 rounded-2xl shadow-md hover:shadow-lg hover:bg-[#2d1b42] transition-all flex items-center justify-center shrink-0"
+            >
+              <Send size={24} className="rotate-[-180deg]" />
             </button>
           </form>
         </div>
