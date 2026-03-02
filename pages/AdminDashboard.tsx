@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Upload, Plus, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, FileUp, FileJson, Loader2, Save, MessageSquare, TrendingUp, HelpCircle, Download, Filter, ArrowUpDown, Users, Bell, Search, LayoutList, Activity, Paperclip, Lock, UserCog, ArrowLeft } from 'lucide-react';
+import { Upload, Plus, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, FileUp, FileJson, Loader2, Save, MessageSquare, TrendingUp, HelpCircle, Download, Filter, ArrowUpDown, Users, Bell, Search, LayoutList, Activity, Paperclip, Lock, UserCog, ArrowLeft, Target, Timer } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { StorageService } from '../services/storageService';
@@ -91,15 +91,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
             if (!localIssuesMap.has(row.id)) {
               loadedIssues.push({
                 id: row.id,
-                createdAt: new Date(row.timestamp).getTime() || Date.now(),
+                createdAt: new Date(row.timestamp || row.createdAt).getTime() || Date.now(),
                 username: row.username || '',
                 userRole: row.userRole || '',
                 category: row.category as IssueCategory || IssueCategory.OTHER,
                 priority: row.priority as IssuePriority || IssuePriority.MEDIUM,
-                summary: row.summary || '',
+                summary: row.summary || 'תקלה שדווחה',
                 description: row.description || '',
                 status: row.status || 'open',
-                treatmentNotes: '',
+                treatmentNotes: row.treatmentNotes || '',
+                closedAt: row.closedAt ? new Date(row.closedAt).getTime() : undefined,
                 attachments: [] 
               });
               hasNewIssues = true;
@@ -126,7 +127,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
         if (result.knowledge && result.knowledge.length > 0) {
             const syncedKb = result.knowledge.map((row: any, idx: number) => ({
                 id: `kb-cloud-${idx}`,
-                createdAt: new Date(row.timestamp).getTime() || Date.now(),
+                createdAt: new Date(row.timestamp || row.createdAt).getTime() || Date.now(),
                 title: row.title || '',
                 content: row.content || '',
                 fileName: row.fileName || '',
@@ -226,6 +227,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
         method: "POST",
         body: JSON.stringify({
           sheet: "Knowledge_Base",
+          action: "insert",
           data: [new Date().toISOString(), newItem.title, newItem.content, newItem.fileName || ""]
         })
       });
@@ -259,18 +261,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       setEditNotes('');
   };
 
+  // =========================================================================
+  // התיקון המרכזי כאן: saveEdit מעודכן שישלח נתונים לפי סדר Bug_Reports
+  // =========================================================================
   const saveEdit = async (issue: Issue) => {
+      const isNewlyClosed = editStatus === 'closed' && issue.status !== 'closed';
+      
       const updatedIssue: Issue = {
           ...issue,
           treatmentNotes: editNotes,
           status: editStatus,
           category: editCategory,
-          priority: editPriority
+          priority: editPriority,
+          closedAt: isNewlyClosed ? Date.now() : (editStatus !== 'closed' ? undefined : issue.closedAt)
       };
+      
+      // 1. שמירה באחסון המקומי
       StorageService.updateIssue(updatedIssue);
       setIssues(prev => prev.map(i => i.id === issue.id ? updatedIssue : i));
       
-      if (editStatus === 'closed' && editNotes.trim().length > 5 && issue.status !== 'closed') {
+      // 2. השמירה לענן - מסודר בדיוק לפי הסדר בעמודות שלך:
+      // A: תאריך, B: שם מלא, C: מחלקה, D: תיאור, E: קבצים, 
+      // F: סטטוס, G: קטגוריה, H: דחיפות, I: דרך טיפול, J: זמן סגירה
+      try {
+          const rowData = [
+              new Date(updatedIssue.createdAt).toISOString(),
+              updatedIssue.username || "אנונימי",
+              updatedIssue.userRole || "",
+              updatedIssue.description,
+              updatedIssue.attachments && updatedIssue.attachments.length > 0 ? "יש קבצים מצורפים" : "",
+              updatedIssue.status,
+              updatedIssue.category,
+              updatedIssue.priority,
+              updatedIssue.treatmentNotes || "",
+              updatedIssue.closedAt ? new Date(updatedIssue.closedAt).toISOString() : ""
+          ];
+
+          await fetch(APPS_SCRIPT_URL, {
+              method: "POST",
+              body: JSON.stringify({
+                  sheet: "Issues", // ה-AppsScript ממיר ל-Bug_Reports
+                  action: "update",
+                  id: updatedIssue.id, 
+                  username: updatedIssue.username,
+                  createdAt: updatedIssue.createdAt,
+                  data: rowData
+              })
+          });
+      } catch (error) {
+          console.error("Failed to update issue in cloud", error);
+      }
+
+      // 3. הוספה למאגר הידע אם התקלה נסגרה עם פתרון מפורט
+      if (isNewlyClosed && editNotes.trim().length > 5) {
           const newTitle = `פתרון תקלה: ${issue.summary}`;
           const newContent = `**תיאור הבעיה המקורית שדווחה:**\n${issue.description}\n\n**דרך הטיפול והפתרון:**\n${editNotes}`;
           const newItem: KnowledgeItem = { id: uuidv4(), title: newTitle, content: newContent, createdAt: Date.now(), sourceType: 'manual' };
@@ -282,6 +325,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                   method: "POST",
                   body: JSON.stringify({
                       sheet: "Knowledge_Base",
+                      action: "insert",
                       data: [new Date().toISOString(), newItem.title, newItem.content, "נלמד אוטומטית"]
                   })
               });
@@ -292,6 +336,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       }
       setEditingIssue(null);
   };
+  // =========================================================================
 
   const downloadAttachment = (attachment: Attachment) => {
       const link = document.createElement("a");
@@ -301,6 +346,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       link.click();
       document.body.removeChild(link);
   };
+
+  // חישובי KPIs לדאשבורד החדש
+  const resolutionStats = useMemo(() => {
+    const total = issues.length;
+    const closedIssues = issues.filter(i => i.status === 'closed');
+    const closedCount = closedIssues.length;
+    const rate = total === 0 ? 0 : Math.round((closedCount / total) * 100);
+
+    let avgTimeHours = 0;
+    const issuesWithTime = closedIssues.filter(i => i.closedAt && i.createdAt);
+    
+    if (issuesWithTime.length > 0) {
+        const totalMs = issuesWithTime.reduce((acc, issue) => acc + (issue.closedAt! - issue.createdAt), 0);
+        avgTimeHours = Math.round((totalMs / (1000 * 60 * 60)) * 10) / 10; 
+    }
+
+    return { total, closedCount, rate, avgTimeHours };
+  }, [issues]);
+
+  const openTasksCount = useMemo(() => issues.filter(i => i.status === 'open').length, [issues]);
 
   const filteredIssues = useMemo(() => {
     return issues.filter(issue => {
@@ -350,10 +415,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   }, [queries, queryFilterStatus, queryFilterUser, queryFilterDate, querySortOption]);
 
   const exportToExcel = () => {
-      const header = ["תאריך", "שם משתמש", "תפקיד", "קטגוריה", "דחיפות", "תקציר", "תיאור", "סטטוס", "הערות טיפול"];
+      const header = ["תאריך פתיחה", "שם משתמש", "מחלקה/תפקיד", "תיאור הבעיה", "סטטוס טיפול", "קטגוריה", "דחיפות", "דרך טיפול", "זמן סגירה"];
       const rows = filteredIssues.map(i => [
-          new Date(i.createdAt).toLocaleDateString('he-IL'), i.username || '', i.userRole || '', i.category, i.priority,
-          `"${i.summary.replace(/"/g, '""')}"`, `"${i.description.replace(/"/g, '""')}"`, i.status, `"${(i.treatmentNotes || '').replace(/"/g, '""')}"`
+          new Date(i.createdAt).toLocaleDateString('he-IL'), i.username || '', i.userRole || '', `"${i.description.replace(/"/g, '""')}"`, 
+          i.status, i.category, i.priority, `"${(i.treatmentNotes || '').replace(/"/g, '""')}"`,
+          i.closedAt ? new Date(i.closedAt).toLocaleDateString('he-IL') : '-'
       ]);
       const csvContent = "\uFEFF" + [header, ...rows].map(e => e.join(",")).join("\n");
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -378,8 +444,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       link.setAttribute("download", `system_pilot_queries_${new Date().toISOString().slice(0,10)}.csv`);
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
-
-  const openTasksCount = useMemo(() => issues.filter(i => i.status === 'open').length, [issues]);
 
   const userStats = useMemo(() => {
       const stats: Record<string, { queries: number, issues: number, department: string }> = {};
@@ -407,7 +471,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
 
-  // מחלקת המעטפת שתקבע את המסך על 100% ותאפשר גלילה חלקה פנימית ללא רווחים
   const screenWrapperClass = "h-screen w-full overflow-y-auto bg-slate-50 p-4 md:p-8 animate-fadeIn";
 
   if (!isAuthenticated) {
@@ -439,14 +502,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       );
   }
 
- if (activeView === 'knowledge') {
+  if (activeView === 'knowledge') {
     return (
       <div className={screenWrapperClass}>
-        <div className="max-w-7xl mx-auto w-full pb-20"> {/* הוספתי pb-20 שיתן מרווח נשימה למטה */}
+        <div className="max-w-7xl mx-auto w-full pb-20">
             <h1 className="text-3xl font-bold text-slate-800 mb-6">ניהול מאגר ידע</h1>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start"> {/* items-start מונע מתיחה מיותרת */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               <div className="lg:col-span-1">
-                {/* הסרתי את ה-sticky top-0 שגרם לטופס "להיתקע" ולהחתך */}
                 <div className="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100">
                   <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><Upload size={20} className="text-indigo-600" /> הוספת מידע חדש</h2>
                   <div onClick={() => !isReadingFile && fileInputRef.current?.click()} className={`mb-4 border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all group ${isReadingFile ? 'opacity-50 cursor-wait' : ''}`}>
@@ -493,7 +555,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   if (activeView === 'queries') {
       return (
         <div className={screenWrapperClass}>
-            <div className="max-w-7xl mx-auto w-full">
+            <div className="max-w-7xl mx-auto w-full pb-20">
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-800">תיעוד שאלות ושיחות</h1>
@@ -505,7 +567,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                     </div>
                 </div>
 
-                {/* --- חזר: ניתוח מגמות AI --- */}
                 <div className="mb-8">
                     <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><TrendingUp size={20} className="text-indigo-500" /> ניתוח מגמות ודמיון (AI)</h3>
                     {trendsLoading ? (
@@ -531,7 +592,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                     )}
                 </div>
 
-                {/* --- חזר: סינונים מתקדמים לשאלות --- */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-center">
                     <div className="flex items-center gap-2 text-slate-500 font-medium"><Filter size={18} /> סינון:</div>
                     <select value={queryFilterStatus} onChange={(e) => setQueryFilterStatus(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
@@ -585,7 +645,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   if (activeView === 'reports') {
       return (
         <div className={screenWrapperClass}>
-            <div className="max-w-7xl mx-auto w-full">
+            <div className="max-w-7xl mx-auto w-full pb-20">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-800">דוח בקרה וטיפול</h1>
@@ -597,7 +657,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                     </div>
                 </div>
 
-                {/* --- חזר: סינונים מתקדמים לתקלות --- */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-center">
                     <div className="flex items-center gap-2 text-slate-500 font-medium"><Filter size={18} /> סינון:</div>
                     <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
@@ -634,16 +693,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                     <div className="overflow-x-auto">
                         <table className="w-full text-right border-collapse">
                             <thead className="bg-slate-50 text-slate-700 text-sm font-bold border-b border-slate-200">
-                                <tr><th className="p-4 whitespace-nowrap">תאריך</th><th className="p-4 whitespace-nowrap">שם משתמש</th><th className="p-4 whitespace-nowrap">תפקיד</th><th className="p-4 whitespace-nowrap">קטגוריה</th><th className="p-4 whitespace-nowrap">דחיפות</th><th className="p-4 whitespace-nowrap">סטטוס</th><th className="p-4 min-w-[300px]">תיאור התקלה / הערות</th><th className="p-4 min-w-[150px]">קבצים מצורפים</th><th className="p-4 min-w-[250px]">דרך טיפול</th><th className="p-4 whitespace-nowrap">פעולות</th></tr>
+                                <tr><th className="p-4 whitespace-nowrap">תאריך פתיחה</th><th className="p-4 whitespace-nowrap">שם משתמש</th><th className="p-4 whitespace-nowrap">קטגוריה</th><th className="p-4 whitespace-nowrap">דחיפות</th><th className="p-4 whitespace-nowrap">סטטוס</th><th className="p-4 min-w-[250px]">תיאור התקלה</th><th className="p-4 min-w-[200px]">דרך טיפול</th><th className="p-4 whitespace-nowrap">פעולות</th></tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-sm">
                                 {filteredIssues.map(issue => (
                                     <tr key={issue.id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="p-4 text-slate-500">{new Date(issue.createdAt).toLocaleDateString('he-IL')}</td>
+                                        <td className="p-4 text-slate-500">
+                                            {new Date(issue.createdAt).toLocaleDateString('he-IL')}
+                                            {issue.closedAt && <div className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1"><CheckCircle size={10}/> נסגר: {new Date(issue.closedAt).toLocaleDateString('he-IL')}</div>}
+                                        </td>
                                         <td className="p-4 font-medium text-slate-800">{issue.username || '-'}</td>
-                                        <td className="p-4 text-slate-600">{issue.userRole || '-'}</td>
-                                        
-                                        {/* תוספת עריכת קטגוריה ודחיפות למנהל */}
                                         <td className="p-4">
                                             {editingIssue === issue.id ? (
                                                  <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as any)} className="p-1.5 border border-slate-300 rounded-lg text-xs">
@@ -662,14 +721,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                                 <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${issue.priority === IssuePriority.CRITICAL ? 'bg-red-100 text-red-600' : issue.priority === IssuePriority.HIGH ? 'bg-orange-100 text-orange-600' : issue.priority === IssuePriority.MEDIUM ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-600'}`}>{issue.priority}</span>
                                             )}
                                         </td>
-                                        
                                         <td className="p-4">
                                             {editingIssue === issue.id ? (
                                                  <select value={editStatus} onChange={(e) => setEditStatus(e.target.value as any)} className="p-1.5 border border-slate-300 rounded-lg text-xs">
-                                                    <option value="open">פתוח</option>
-                                                    <option value="in_progress">בטיפול</option>
-                                                    <option value="transferred">הועבר לטיפול</option>
-                                                    <option value="closed">סגור</option>
+                                                    <option value="open">פתוח</option><option value="in_progress">בטיפול</option><option value="transferred">הועבר לטיפול</option><option value="closed">סגור</option>
                                                  </select>
                                             ) : (
                                                 <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${issue.status === 'open' ? 'bg-red-50 text-red-600 border-red-100' : issue.status === 'in_progress' ? 'bg-orange-50 text-orange-600 border-orange-100' : issue.status === 'transferred' ? 'bg-purple-50 text-purple-600 border-purple-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
@@ -679,16 +734,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                         </td>
                                         <td className="p-4">
                                             <div className="font-semibold text-slate-700 mb-1">{issue.summary}</div>
-                                            <div className="text-slate-500 leading-relaxed text-xs">{issue.description}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            {issue.attachments && issue.attachments.length > 0 ? (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {issue.attachments.map((att, idx) => (
-                                                        <button key={idx} onClick={() => downloadAttachment(att)} className="flex items-center gap-1 bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-1 rounded text-[10px] hover:bg-indigo-100"><Paperclip size={10} /><span className="truncate max-w-[80px]">{att.name}</span></button>
-                                                    ))}
-                                                </div>
-                                            ) : (<span className="text-slate-300 text-xs">-</span>)}
+                                            <div className="text-slate-500 leading-relaxed text-xs line-clamp-2" title={issue.description}>{issue.description}</div>
                                         </td>
                                         <td className="p-4">
                                             {editingIssue === issue.id ? (
@@ -706,7 +752,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                         </td>
                                     </tr>
                                 ))}
-                                 {filteredIssues.length === 0 && <tr><td colSpan={10} className="p-12 text-center text-slate-400">לא נמצאו תקלות התואמות את הסינון</td></tr>}
+                                 {filteredIssues.length === 0 && <tr><td colSpan={8} className="p-12 text-center text-slate-400">לא נמצאו תקלות התואמות את הסינון</td></tr>}
                             </tbody>
                         </table>
                     </div>
@@ -718,7 +764,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
   return (
     <div className={screenWrapperClass}>
-      <div className="max-w-7xl mx-auto w-full">
+      <div className="max-w-7xl mx-auto w-full pb-20">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
                <h1 className="text-3xl font-bold text-slate-800">לוח בקרה ניהולי</h1>
@@ -727,7 +773,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
             <button onClick={loadData} className="p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-50 text-slate-500 hover:text-indigo-600 transition-colors" title="רענן נתונים"><RefreshCw size={20} /></button>
           </div>
 
-          {/* --- חזר: שלוש הלשוניות (כולל טיפול בעובדים) --- */}
           <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-xl w-fit border border-slate-200 shadow-sm flex-wrap">
               <button onClick={() => setDashboardTab('overview')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${dashboardTab === 'overview' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}><Activity size={16} /> סקירה כללית</button>
               <button onClick={() => setDashboardTab('tasks')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${dashboardTab === 'tasks' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}><LayoutList size={16} /> משימות חדשות {openTasksCount > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{openTasksCount}</span>}</button>
@@ -736,7 +781,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
           {dashboardTab === 'overview' && (
             <div className="animate-fadeIn w-full">
-                {/* --- חזר: תובנות AI --- */}
+                
+                {/* --- ה-KPIs החדשים: כרטיסיות נתונים מהירים --- */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center">
+                        <div className="text-slate-400 text-sm mb-2 font-medium flex items-center gap-1"><FileText size={16}/> סה"כ תקלות</div>
+                        <div className="text-3xl font-black text-slate-700">{resolutionStats.total}</div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center">
+                        <div className="text-slate-400 text-sm mb-2 font-medium flex items-center gap-1"><AlertCircle size={16} className="text-red-400"/> תקלות פתוחות</div>
+                        <div className="text-3xl font-black text-red-500">{openTasksCount}</div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center">
+                        <div className="text-slate-400 text-sm mb-2 font-medium flex items-center gap-1"><Target size={16} className="text-emerald-500"/> אחוז פתרון</div>
+                        <div className="text-3xl font-black text-emerald-500">{resolutionStats.rate}%</div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center">
+                        <div className="text-slate-400 text-sm mb-2 font-medium flex items-center gap-1"><Timer size={16} className="text-indigo-500"/> זמן פתרון ממוצע</div>
+                        <div className="text-3xl font-black text-indigo-600" dir="ltr">{resolutionStats.avgTimeHours > 0 ? `${resolutionStats.avgTimeHours}h` : '-'}</div>
+                    </div>
+                </div>
+
                 <div className="bg-gradient-to-l from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-200 mb-8 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full bg-white/5 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/20 to-transparent pointer-events-none"></div>
                     <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Clock size={20} className="text-indigo-200" /> תובנות AI בזמן אמת</h3>
@@ -880,4 +945,3 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     </div>
   );
 };
-
