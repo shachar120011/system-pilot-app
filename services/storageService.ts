@@ -1,60 +1,125 @@
-import { Issue, KnowledgeItem, IssuePriority, IssueCategory, UserQuery } from '../types';
-
-const ISSUES_KEY = 'system_pilot_issues';
-const KNOWLEDGE_KEY = 'system_pilot_knowledge';
-const QUERIES_KEY = 'system_pilot_queries';
+import { supabase } from './supabaseClient';
+import { Issue, KnowledgeItem, UserQuery } from '../types';
 
 export const StorageService = {
-  getIssues: (): Issue[] => {
-    const data = localStorage.getItem(ISSUES_KEY);
-    return data ? JSON.parse(data) : [];
+  // --- ניהול תקלות (Issues) ---
+  getIssues: async (): Promise<Issue[]> => {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching issues:", error);
+      return [];
+    }
+    
+    // מיפוי השדות מהדאטה-בייס לסוג הנתונים באפליקציה
+    return data.map(item => ({
+      id: item.id,
+      createdAt: new Date(item.created_at).getTime(),
+      username: item.username,
+      userRole: item.department, // מחלקה
+      description: item.description,
+      category: item.category,
+      priority: item.priority,
+      status: item.status,
+      treatmentNotes: item.treatment_notes,
+      closedAt: item.closed_at ? new Date(item.closed_at).getTime() : undefined,
+      attachments: [] // טיפול בקבצים נעשה בשלב הבא
+    }));
   },
 
-  saveIssue: (issue: Issue): void => {
-    const issues = StorageService.getIssues();
-    const updatedIssues = [issue, ...issues];
-    localStorage.setItem(ISSUES_KEY, JSON.stringify(updatedIssues));
+  saveIssue: async (issue: Issue): Promise<boolean> => {
+    const { error } = await supabase.from('issues').insert([{
+      username: issue.username,
+      department: issue.userRole,
+      description: issue.description,
+      category: issue.category,
+      priority: issue.priority,
+      status: issue.status
+    }]);
+
+    if (error) {
+      console.error("Error saving issue:", error);
+      return false;
+    }
+    return true;
   },
 
-  updateIssueStatus: (id: string, status: Issue['status']): void => {
-    const issues = StorageService.getIssues();
-    const updated = issues.map(i => i.id === id ? { ...i, status } : i);
-    localStorage.setItem(ISSUES_KEY, JSON.stringify(updated));
+  updateIssue: async (updatedIssue: Issue): Promise<boolean> => {
+    const { error } = await supabase
+      .from('issues')
+      .update({
+        status: updatedIssue.status,
+        treatment_notes: updatedIssue.treatmentNotes,
+        category: updatedIssue.category,
+        priority: updatedIssue.priority,
+        closed_at: updatedIssue.closedAt ? new Date(updatedIssue.closedAt).toISOString() : null
+      })
+      .eq('id', updatedIssue.id);
+
+    if (error) {
+      console.error("Error updating issue:", error);
+      return false;
+    }
+    return true;
   },
 
-  updateIssue: (updatedIssue: Issue): void => {
-    const issues = StorageService.getIssues();
-    const updated = issues.map(i => i.id === updatedIssue.id ? updatedIssue : i);
-    localStorage.setItem(ISSUES_KEY, JSON.stringify(updated));
+  // --- ניהול מאגר ידע (Knowledge Base) ---
+  getKnowledgeBase: async (): Promise<KnowledgeItem[]> => {
+    const { data, error } = await supabase
+      .from('knowledge')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+    
+    return data.map(item => ({
+      id: item.id,
+      createdAt: new Date(item.created_at).getTime(),
+      title: item.title,
+      content: item.content,
+      sourceType: item.source_type
+    }));
   },
 
-  getKnowledgeBase: (): KnowledgeItem[] => {
-    const data = localStorage.getItem(KNOWLEDGE_KEY);
-    return data ? JSON.parse(data) : [];
+  saveKnowledgeItem: async (item: KnowledgeItem): Promise<boolean> => {
+    const { error } = await supabase.from('knowledge').insert([{
+      title: item.title,
+      content: item.content,
+      source_type: item.sourceType
+    }]);
+    return !error;
   },
 
-  saveKnowledgeItem: (item: KnowledgeItem): void => {
-    const items = StorageService.getKnowledgeBase();
-    const updatedItems = [item, ...items];
-    localStorage.setItem(KNOWLEDGE_KEY, JSON.stringify(updatedItems));
+  // --- ניהול יומן שאלות (Chat Logs) ---
+  getQueries: async (): Promise<UserQuery[]> => {
+    const { data, error } = await supabase
+      .from('chat_logs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+
+    return data.map(item => ({
+      id: item.id,
+      timestamp: new Date(item.created_at).getTime(),
+      username: item.username,
+      department: item.department,
+      question: item.question,
+      answer: item.answer,
+      isAnswered: true
+    }));
   },
 
-  // Queries Methods
-  getQueries: (): UserQuery[] => {
-      const data = localStorage.getItem(QUERIES_KEY);
-      return data ? JSON.parse(data) : [];
-  },
-
-  saveQuery: (query: UserQuery): void => {
-      const queries = StorageService.getQueries();
-      const updatedQueries = [query, ...queries];
-      localStorage.setItem(QUERIES_KEY, JSON.stringify(updatedQueries));
-  },
-
-  // Helper to get full context for AI
-  getFullContextText: (): string => {
-    const items = StorageService.getKnowledgeBase();
-    if (!items || items.length === 0) return "אין מידע במאגר כרגע.";
-    return items.map(item => `נושא: ${item.title}\nתוכן: ${item.content}`).join('\n\n');
+  saveQuery: async (query: UserQuery): Promise<boolean> => {
+    const { error } = await supabase.from('chat_logs').insert([{
+      username: query.username,
+      department: query.department,
+      question: query.question,
+      answer: query.answer
+    }]);
+    return !error;
   }
 };
