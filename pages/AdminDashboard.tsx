@@ -99,13 +99,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
   const generateInsight = async (currentIssues: Issue[]) => {
       const recentIssues = currentIssues.slice(0, 10).map(i => ({ category: i.category, summary: i.summary }));
-      // הנחיה נוקשה ל-AI כדי למנוע thoughts ואנגלית
       const prompt = `נתח את רשימת התקלות והוצא תובנה ניהולית אחת קצרה ומקצועית בעברית בלבד. 
       אל תוסיף הקדמות, אל תכתוב באנגלית, ואל תציג את הרהורי המערכת. רק התוצאה הסופית ב-Markdown.
       נתונים: ${JSON.stringify(recentIssues)}`;
       
       const insight = await GeminiService.generateInsights(prompt);
-      // ניקוי נוסף למקרה שהמודל מתעלם מההנחיות
       const cleanInsight = insight.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
       setAiInsight(cleanInsight);
   }
@@ -361,7 +359,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     return (
       <div className={screenWrapperClass}>
         <div className="max-w-7xl mx-auto w-full pb-20">
-            <h1 className="text-3xl font-bold text-slate-800 mb-6">ניהול מאגר ידע</h1>
+            {/* יישור כותרת לימין - תיקון RTL */}
+            <div className="flex flex-row-reverse justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold text-slate-800">ניהול מאגר ידע</h1>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               <div className="lg:col-span-1">
                 <div className="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100">
@@ -404,8 +405,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     return (
       <div className={screenWrapperClass}>
           <div className="max-w-7xl mx-auto w-full pb-20">
-              <div className="flex justify-between items-center mb-6 flex-row-reverse">
-                  <div>
+              <div className="flex flex-row-reverse justify-between items-center mb-6">
+                  <div className="text-right">
                       <h1 className="text-3xl font-bold text-slate-800">תיעוד שאלות ושיחות</h1>
                       <p className="text-slate-500">מעקב אחר שאלות עובדים</p>
                   </div>
@@ -463,7 +464,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       return (
         <div className={screenWrapperClass}>
             <div className="max-w-7xl mx-auto w-full pb-20">
-                <div className="flex justify-between items-center mb-6 flex-row-reverse">
+                {/* תיקון כותרת דוח - יישור לימין */}
+                <div className="flex flex-row-reverse justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-slate-800">דוח בקרה וטיפול</h1>
                     <div className="flex gap-2">
                         <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl shadow-sm transition-all"><Download size={18} /> יצוא לאקסל</button>
@@ -526,7 +528,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                             {editingIssue === issue.id ? (
                                                 <div className="flex gap-1">
                                                   <button onClick={() => saveEdit(issue)} className="bg-indigo-600 text-white p-1.5 rounded-lg hover:bg-indigo-700 shadow-sm transition-all"><Save size={14}/></button>
-                                                  <button onClick={() => setEditingIssue(null)} className="bg-slate-200 text-slate-600 p-1.5 rounded-lg"><X size={14}/></button>
+                                                  <button onClick={() => setEditingIssue(null)} className="bg-slate-200 text-slate-600 p-1.5 rounded-lg hover:bg-slate-300"><X size={14}/></button>
                                                 </div>
                                             ) : (
                                                 <button onClick={() => startEditing(issue)} className="text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-all">עדכן</button>
@@ -543,39 +545,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       );
   }
 
-  // --- דף הבית של הניהול (Overview) ---
   return (
     <div className={screenWrapperClass}>
       <div className="max-w-7xl mx-auto w-full pb-20">
-          <div className="flex justify-between items-center mb-8 flex-row-reverse">
+          {/* כותרת דאשבורד - יישור לימין */}
+          <div className="flex flex-row-reverse justify-between items-center mb-8">
             <div className="text-right">
                <h1 className="text-3xl font-bold text-slate-800 tracking-tight">לוח בקרה ניהולי</h1>
-               <p className="text-slate-500 font-medium">סקירה כללית על הטמעת המערכת (מחובר לענן Supabase)</p>
+               <p className="text-slate-500 font-medium">סקירה כללית על הטמעת המערכת (Supabase Cloud)</p>
             </div>
             <button onClick={loadData} className="p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-all shadow-sm"><RefreshCw size={22} className={loading ? "animate-spin text-indigo-600" : "text-slate-500"} /></button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold flex flex-row items-center gap-1"><FileText size={16}/> סה"כ תקלות</div>
                   <div className="text-3xl font-black text-slate-700">{resolutionStats.total}</div>
               </div>
-              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold text-red-500 flex flex-row items-center gap-1"><AlertCircle size={16}/> פתוחות</div>
                   <div className="text-3xl font-black text-red-500">{openTasksCount}</div>
               </div>
-              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold text-emerald-500 flex flex-row items-center gap-1"><Target size={16}/> אחוז פתרון</div>
                   <div className="text-3xl font-black text-emerald-500">{resolutionStats.rate}%</div>
               </div>
-              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold text-indigo-500 flex flex-row items-center gap-1"><Timer size={16}/> זמן פתרון</div>
                   <div className="text-3xl font-black text-indigo-600" dir="ltr">{resolutionStats.avgTimeHours}h</div>
               </div>
           </div>
 
-          {/* הלשוניות - מתוקן עם onClick מלא */}
-          <div className="flex flex-row items-center gap-2 mb-8 bg-white p-1 rounded-2xl w-fit border border-slate-200 shadow-sm">
+          <div className="flex flex-row-reverse items-center gap-2 mb-8 bg-white p-1 rounded-2xl w-fit border border-slate-200 shadow-sm">
               <button onClick={() => setDashboardTab('overview')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'overview' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><Activity size={16} className="inline ml-2" />סקירה כללית</button>
               <button onClick={() => setDashboardTab('tasks')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'tasks' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><LayoutList size={16} className="inline ml-2" />משימות פתוחות ({openTasksCount})</button>
               <button onClick={() => setDashboardTab('users')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'users' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><Users size={16} className="inline ml-2" />משתמשים</button>
@@ -585,7 +586,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
             <div className="animate-fadeIn w-full space-y-8">
                 <div className="bg-gradient-to-br from-[#432A61] to-[#603b8e] rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl transition-all group-hover:scale-125"></div>
-                    <h3 className="font-bold text-xl mb-4 flex flex-row items-center gap-2"><Clock size={24} className="text-indigo-200" /> תובנות AI בזמן אמת</h3>
+                    <h3 className="font-bold text-xl mb-4 flex flex-row-reverse items-center gap-2"><Clock size={24} className="text-indigo-200" /> תובנות AI בזמן אמת</h3>
                     <div className="text-indigo-50 leading-relaxed text-lg prose prose-invert prose-p:my-1 text-right max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiInsight || 'המערכת מנתחת נתונים...'}</ReactMarkdown>
                     </div>
@@ -622,19 +623,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
           {dashboardTab === 'tasks' && (
               <div className="animate-fadeIn w-full space-y-4">
-                  <div className="flex flex-row items-center gap-2 mb-4 text-slate-700 font-bold text-lg"><Bell size={20} className="text-red-500" /> תקלות שממתינות לטיפול שלך</div>
+                  <div className="flex flex-row-reverse items-center gap-2 mb-4 text-slate-700 font-bold text-lg"><Bell size={20} className="text-red-500" /> תקלות שממתינות לטיפול שלך</div>
                   {filteredIssues.filter(i => i.status === 'open').map(issue => (
                       <div key={issue.id} className="bg-white p-6 rounded-3xl border-r-4 border-r-red-500 shadow-sm border border-slate-100 transition-all hover:shadow-md hover:-translate-y-1">
-                          <div className="flex flex-row justify-between items-start">
+                          <div className="flex flex-row-reverse justify-between items-start">
                                 <div className="text-right">
-                                    <div className="flex flex-row items-center gap-3 mb-2">
+                                    <div className="flex flex-row-reverse items-center gap-3 mb-2">
                                       <h4 className="font-bold text-slate-800 text-lg">{issue.summary || issue.category}</h4>
                                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${issue.priority === IssuePriority.CRITICAL ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-700'}`}>{issue.priority}</span>
                                     </div>
                                     <p className="text-slate-600 text-sm mb-4 line-clamp-2 max-w-2xl">{issue.description}</p>
-                                    <div className="flex flex-row items-center gap-4 text-xs text-slate-400">
-                                      <span className="flex flex-row items-center gap-1"><Clock size={12}/> {new Date(issue.createdAt).toLocaleDateString('he-IL')}</span>
-                                      <span className="flex flex-row items-center gap-1"><User size={12}/> {issue.username}</span>
+                                    <div className="flex flex-row-reverse items-center gap-4 text-xs text-slate-400">
+                                      <span className="flex flex-row-reverse items-center gap-1"><Clock size={12}/> {new Date(issue.createdAt).toLocaleDateString('he-IL')}</span>
+                                      <span className="flex flex-row-reverse items-center gap-1"><User size={12}/> {issue.username}</span>
                                     </div>
                                 </div>
                                 <button onClick={() => startEditing(issue)} className="bg-white text-indigo-600 border border-indigo-100 hover:bg-indigo-50 px-6 py-3 rounded-2xl text-sm font-bold transition-all shadow-sm">טפל בתקלה</button>
