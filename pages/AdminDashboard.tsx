@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Upload, Plus, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, FileUp, FileJson, Loader2, Save, MessageSquare, TrendingUp, HelpCircle, Download, Filter, ArrowUpDown, Users, Bell, Search, LayoutList, Activity, Paperclip, Lock, UserCog, ArrowLeft, Target, Timer, X } from 'lucide-react';
+// תיקון קריטי: המילה User התווספה לשורה הבאה!
+import { Upload, Plus, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, FileUp, FileJson, Loader2, Save, MessageSquare, TrendingUp, HelpCircle, Download, Filter, ArrowUpDown, Users, User, Bell, Search, LayoutList, Activity, Paperclip, Lock, UserCog, ArrowLeft, Target, Timer, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { StorageService } from '../services/storageService';
@@ -208,7 +209,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       setEditingIssue(null);
   };
 
-  // --- פונקציית הורדת קבצים (קיימת ומוכנה) ---
   const downloadAttachment = (attachment: Attachment) => {
       const link = document.createElement("a");
       link.href = attachment.data;
@@ -477,7 +477,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                         <table className="w-full text-right border-collapse">
                             <thead className="bg-slate-50 text-slate-700 text-sm font-bold border-b">
                                 <tr>
-                                  {/* הוספתי את עמודת הקבצים בחזרה! */}
                                   <th className="p-4">תאריך</th><th className="p-4">שם משתמש</th><th className="p-4">קטגוריה</th><th className="p-4">דחיפות</th><th className="p-4">סטטוס</th><th className="p-4 min-w-[250px]">תיאור התקלה</th><th className="p-4">קבצים</th><th className="p-4 min-w-[200px]">דרך טיפול</th><th className="p-4">פעולות</th>
                                 </tr>
                             </thead>
@@ -512,7 +511,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                         </td>
                                         <td className="p-4 text-slate-500 text-xs line-clamp-2" title={issue.description}>{issue.description}</td>
                                         
-                                        {/* תצוגת קבצים מצורפים בדוח */}
                                         <td className="p-4">
                                             {issue.attachments && issue.attachments.length > 0 ? (
                                               <div className="flex flex-col gap-1">
@@ -645,13 +643,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                       <h4 className="font-bold text-slate-800 text-lg">{issue.summary || issue.category}</h4>
                                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${issue.priority === IssuePriority.CRITICAL ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-700'}`}>{issue.priority}</span>
                                       
-                                      {/* חיווי שיש קבצים גם במסך המשימות המהיר */}
                                       {issue.attachments && issue.attachments.length > 0 && (
                                           <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">
                                               <Paperclip size={10}/> {issue.attachments.length} קבצים
                                           </span>
                                       )}
-
                                     </div>
                                     <p className="text-slate-600 text-sm mb-4 line-clamp-2 max-w-2xl">{issue.description}</p>
                                     <div className="flex items-center gap-4 text-xs text-slate-400">
