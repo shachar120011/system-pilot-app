@@ -97,15 +97,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     }
   };
 
-  // --- שיפור ניתוח ה-AI: מתומצת ובעברית בלבד ---
   const generateInsight = async (currentIssues: Issue[]) => {
       const recentIssues = currentIssues.slice(0, 10).map(i => ({ category: i.category, summary: i.summary }));
-      const prompt = `נתח את רשימת התקלות הבאה והוצא תובנה ניהולית אחת מרכזית, מתומצתת ומקצועית בעברית בלבד. 
-      השתמש בפורמט Markdown עם בולטים אם צריך. אל תוסיף הקדמות, אל תכתוב באנגלית, ואל תציג את ה"מחשבות" שלך. 
-      הנתונים: ${JSON.stringify(recentIssues)}`;
+      // הנחיה נוקשה ל-AI כדי למנוע thoughts ואנגלית
+      const prompt = `נתח את רשימת התקלות והוצא תובנה ניהולית אחת קצרה ומקצועית בעברית בלבד. 
+      אל תוסיף הקדמות, אל תכתוב באנגלית, ואל תציג את הרהורי המערכת. רק התוצאה הסופית ב-Markdown.
+      נתונים: ${JSON.stringify(recentIssues)}`;
       
       const insight = await GeminiService.generateInsights(prompt);
-      // ניקוי תגיות "thinking" אם הבוט מתעקש להוסיף אותן
+      // ניקוי נוסף למקרה שהמודל מתעלם מההנחיות
       const cleanInsight = insight.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
       setAiInsight(cleanInsight);
   }
@@ -147,7 +147,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
         }
     } catch (error) {
         console.error("File Reading Error:", error);
-        alert("שגיאה בקריאת הקובץ.");
     } finally {
         setIsReadingFile(false);
     }
@@ -172,10 +171,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     setUploadedFileName(null);
     setUploadSuccess(true);
     setTimeout(() => setUploadSuccess(false), 3000);
-  };
-
-  const handleDeleteKnowledge = (id: string) => {
-      setKnowledgeItems(prev => prev.filter(item => item.id !== id));
   };
 
   const startEditing = (issue: Issue) => {
@@ -205,13 +200,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
           const newItem: KnowledgeItem = { 
             id: uuidv4(), 
             title: `פתרון: ${issue.summary || issue.category}`, 
-            content: `**תיאור הבעיה:** ${issue.description}\n\n**פתרון:** ${editNotes}`, 
+            content: `**בעיה:** ${issue.description}\n\n**פתרון:** ${editNotes}`, 
             createdAt: Date.now(), 
             sourceType: 'manual' 
           };
           await StorageService.saveKnowledgeItem(newItem);
           setKnowledgeItems(prev => [newItem, ...prev]);
-          alert("🤖 הפתרון התווסף למאגר הידע.");
       }
       setEditingIssue(null);
   };
@@ -342,8 +336,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   }, [issues]);
 
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
-  
-  // יישור לימין של המסך כולו
   const screenWrapperClass = "h-screen w-full overflow-y-auto bg-slate-50 p-4 md:p-8 animate-fadeIn text-right rtl";
 
   if (!isAuthenticated) {
@@ -365,12 +357,197 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       );
   }
 
+  if (activeView === 'knowledge') {
+    return (
+      <div className={screenWrapperClass}>
+        <div className="max-w-7xl mx-auto w-full pb-20">
+            <h1 className="text-3xl font-bold text-slate-800 mb-6">ניהול מאגר ידע</h1>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              <div className="lg:col-span-1">
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100">
+                  <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 flex-row-reverse"><Upload size={20} className="text-indigo-600" /> הוספת מידע חדש</h2>
+                  <div onClick={() => !isReadingFile && fileInputRef.current?.click()} className="mb-4 border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 transition-all">
+                    <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.md,.pdf" onChange={handleFileSelect} />
+                    {isReadingFile ? <Loader2 size={24} className="animate-spin text-indigo-600" /> : <FileUp size={24} className="text-indigo-600 mb-2" />}
+                    <p className="text-sm font-medium text-slate-600">{isReadingFile ? 'קורא נתונים...' : 'לחץ להעלאת מסמך'}</p>
+                    {uploadedFileName && <div className="mt-2 text-xs text-emerald-600 font-bold">{uploadedFileName}</div>}
+                  </div>
+                  <form onSubmit={handleAddKnowledge} className="space-y-4">
+                    <input type="text" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-right" placeholder="כותרת" required />
+                    <textarea value={newDocContent} onChange={(e) => setNewDocContent(e.target.value)} className="w-full h-32 p-3 bg-slate-50 border rounded-xl text-right resize-none" placeholder="תוכן..." required />
+                    <button type="submit" className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md flex justify-center items-center gap-2">
+                        {uploadSuccess ? <CheckCircle size={20} /> : <Plus size={20} />} {uploadSuccess ? 'נשמר' : 'שמור למאגר'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+              <div className="lg:col-span-2 space-y-4">
+                 <h2 className="text-lg font-bold text-slate-700 mb-2">פריטי ידע קיימים ({knowledgeItems.length})</h2>
+                {knowledgeItems.map((item) => (
+                    <div key={item.id} className="bg-white p-5 rounded-2xl shadow-sm border group relative">
+                        <div className="flex justify-between flex-row-reverse mb-2">
+                            <h3 className="font-bold text-slate-800">{item.title}</h3>
+                            <span className="text-xs text-slate-400">{new Date(item.createdAt).toLocaleDateString('he-IL')}</span>
+                        </div>
+                        <p className="text-slate-600 text-sm line-clamp-3 leading-relaxed">{item.content}</p>
+                        <button onClick={() => handleDeleteKnowledge(item.id)} className="absolute bottom-5 left-5 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={18} /></button>
+                    </div>
+                ))}
+              </div>
+            </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeView === 'queries') {
+    return (
+      <div className={screenWrapperClass}>
+          <div className="max-w-7xl mx-auto w-full pb-20">
+              <div className="flex justify-between items-center mb-6 flex-row-reverse">
+                  <div>
+                      <h1 className="text-3xl font-bold text-slate-800">תיעוד שאלות ושיחות</h1>
+                      <p className="text-slate-500">מעקב אחר שאלות עובדים</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={exportQueriesToExcel} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl shadow-sm transition-all"><Download size={18} /> יצוא לאקסל</button>
+                    <button onClick={loadData} className="p-2 bg-white border rounded-full hover:bg-slate-50"><RefreshCw size={20} className={loading ? "animate-spin" : ""} /></button>
+                  </div>
+              </div>
+
+              <div className="mb-8">
+                <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 flex-row-reverse"><TrendingUp size={20} className="text-indigo-500" /> ניתוח מגמות AI</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {queryTrends.map((trend, idx) => (
+                      <div key={idx} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-1 h-full bg-indigo-500"></div>
+                        <div className="flex justify-between items-start flex-row-reverse mb-2">
+                          <h4 className="font-bold text-slate-800">{trend.topic}</h4>
+                          <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg text-xs font-bold">{trend.count} שאלות</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-2 space-y-1">
+                          {trend.exampleQuestions.map((q, i) => <div key={i} className="flex items-start gap-1.5 flex-row-reverse"><HelpCircle size={10} className="mt-0.5 shrink-0" /><span className="truncate">{q}</span></div>)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
+                  <div className="overflow-x-auto">
+                      <table className="w-full text-right border-collapse">
+                          <thead className="bg-slate-50 text-slate-700 text-sm font-bold border-b">
+                              <tr><th className="p-4">תאריך</th><th className="p-4">שם עובד</th><th className="p-4">מחלקה</th><th className="p-4">שאלה</th><th className="p-4">תשובת המערכת</th><th className="p-4">סטטוס</th></tr>
+                          </thead>
+                          <tbody className="divide-y text-sm">
+                              {filteredQueries.map(q => (
+                                  <tr key={q.id} className="hover:bg-slate-50 transition-colors">
+                                      <td className="p-4 text-slate-500">{new Date(q.timestamp).toLocaleDateString('he-IL')}</td>
+                                      <td className="p-4 font-medium text-slate-800">{q.username || 'אורח'}</td>
+                                      <td className="p-4 text-slate-600">{q.department || '-'}</td>
+                                      <td className="p-4 text-slate-700 font-medium">{q.question}</td>
+                                      <td className="p-4 text-slate-500 text-xs leading-relaxed"><div className="line-clamp-2 hover:line-clamp-none">{q.answer}</div></td>
+                                      <td className="p-4">{q.isAnswered ? <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-semibold">נענתה</span> : <span className="text-red-500 bg-red-50 px-2 py-1 rounded-full text-xs">שגיאה</span>}</td>
+                                  </tr>
+                              ))}
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+      </div>
+    );
+  }
+
+  if (activeView === 'reports') {
+      return (
+        <div className={screenWrapperClass}>
+            <div className="max-w-7xl mx-auto w-full pb-20">
+                <div className="flex justify-between items-center mb-6 flex-row-reverse">
+                    <h1 className="text-3xl font-bold text-slate-800">דוח בקרה וטיפול</h1>
+                    <div className="flex gap-2">
+                        <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl shadow-sm transition-all"><Download size={18} /> יצוא לאקסל</button>
+                        <button onClick={loadData} className="p-2 bg-white border rounded-full hover:bg-slate-50"><RefreshCw size={20} className={loading ? "animate-spin" : ""} /></button>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden w-full">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right border-collapse">
+                            <thead className="bg-slate-50 text-slate-700 text-sm font-bold border-b">
+                                <tr>
+                                  <th className="p-4">תאריך</th><th className="p-4">שם משתמש</th><th className="p-4">קטגוריה</th><th className="p-4">דחיפות</th><th className="p-4">סטטוס</th><th className="p-4 min-w-[250px]">תיאור התקלה</th><th className="p-4 min-w-[200px]">דרך טיפול</th><th className="p-4">פעולות</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y text-sm">
+                                {filteredIssues.map(issue => (
+                                    <tr key={issue.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-4 text-slate-500">
+                                            {new Date(issue.createdAt).toLocaleDateString('he-IL')}
+                                            {issue.closedAt && <div className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1 flex-row-reverse"><CheckCircle size={10}/> נסגר: {new Date(issue.closedAt).toLocaleDateString('he-IL')}</div>}
+                                        </td>
+                                        <td className="p-4 font-medium text-slate-800">{issue.username}</td>
+                                        <td className="p-4">
+                                            {editingIssue === issue.id ? (
+                                                <select value={editCategory} onChange={e => setEditCategory(e.target.value as any)} className="p-1 border rounded text-xs">
+                                                    {Object.values(IssueCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                                </select>
+                                            ) : <span className="text-slate-700">{issue.category}</span>}
+                                        </td>
+                                        <td className="p-4">
+                                            {editingIssue === issue.id ? (
+                                                <select value={editPriority} onChange={e => setEditPriority(e.target.value as any)} className="p-1 border rounded text-xs">
+                                                    {Object.values(IssuePriority).map(prio => <option key={prio} value={prio}>{prio}</option>)}
+                                                </select>
+                                            ) : <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${issue.priority === IssuePriority.CRITICAL ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-700'}`}>{issue.priority}</span>}
+                                        </td>
+                                        <td className="p-4">
+                                            {editingIssue === issue.id ? (
+                                                <select value={editStatus} onChange={e => setEditStatus(e.target.value as any)} className="p-1 border rounded text-xs">
+                                                    <option value="open">פתוח</option><option value="in_progress">בטיפול</option><option value="closed">סגור</option>
+                                                </select>
+                                            ) : <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${issue.status === 'open' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{issue.status === 'open' ? 'פתוח' : 'סגור'}</span>}
+                                        </td>
+                                        <td className="p-4 text-slate-500 text-xs line-clamp-2" title={issue.description}>{issue.description}</td>
+                                        <td className="p-4">
+                                            {editingIssue === issue.id ? (
+                                                <div className="flex flex-col gap-2">
+                                                    <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="w-full p-2 border border-blue-300 rounded-lg text-xs h-20 outline-none" placeholder="הזן פתרון..." />
+                                                    <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer w-fit">
+                                                        <input type="checkbox" checked={saveToKnowledgeBase} onChange={(e) => setSaveToKnowledgeBase(e.target.checked)} className="rounded text-indigo-600" />
+                                                        שמור למאגר ידע
+                                                    </label>
+                                                </div>
+                                            ) : (
+                                                <div className="text-slate-600 whitespace-pre-wrap text-xs">{issue.treatmentNotes || <span className="text-slate-300 italic">טרם הוזן טיפול</span>}</div>
+                                            )}
+                                        </td>
+                                        <td className="p-4">
+                                            {editingIssue === issue.id ? (
+                                                <div className="flex gap-1">
+                                                  <button onClick={() => saveEdit(issue)} className="bg-indigo-600 text-white p-1.5 rounded-lg hover:bg-indigo-700 shadow-sm transition-all"><Save size={14}/></button>
+                                                  <button onClick={() => setEditingIssue(null)} className="bg-slate-200 text-slate-600 p-1.5 rounded-lg"><X size={14}/></button>
+                                                </div>
+                                            ) : (
+                                                <button onClick={() => startEditing(issue)} className="text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-all">עדכן</button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+      );
+  }
+
+  // --- דף הבית של הניהול (Overview) ---
   return (
     <div className={screenWrapperClass}>
       <div className="max-w-7xl mx-auto w-full pb-20">
-          
-          {/* יישור כותרת לימין - תיקון RTL */}
-          <div className="flex flex-row justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-8 flex-row-reverse">
             <div className="text-right">
                <h1 className="text-3xl font-bold text-slate-800 tracking-tight">לוח בקרה ניהולי</h1>
                <p className="text-slate-500 font-medium">סקירה כללית על הטמעת המערכת (מחובר לענן Supabase)</p>
@@ -379,24 +556,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold flex flex-row items-center gap-1"><FileText size={16}/> סה"כ תקלות</div>
                   <div className="text-3xl font-black text-slate-700">{resolutionStats.total}</div>
               </div>
-              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold text-red-500 flex flex-row items-center gap-1"><AlertCircle size={16}/> פתוחות</div>
                   <div className="text-3xl font-black text-red-500">{openTasksCount}</div>
               </div>
-              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold text-emerald-500 flex flex-row items-center gap-1"><Target size={16}/> אחוז פתרון</div>
                   <div className="text-3xl font-black text-emerald-500">{resolutionStats.rate}%</div>
               </div>
-              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
+              <div className="bg-white p-5 rounded-3xl shadow-sm border flex flex-col items-center justify-center transition-all hover:shadow-md">
                   <div className="text-slate-400 text-sm mb-2 font-bold text-indigo-500 flex flex-row items-center gap-1"><Timer size={16}/> זמן פתרון</div>
                   <div className="text-3xl font-black text-indigo-600" dir="ltr">{resolutionStats.avgTimeHours}h</div>
               </div>
           </div>
 
+          {/* הלשוניות - מתוקן עם onClick מלא */}
           <div className="flex flex-row items-center gap-2 mb-8 bg-white p-1 rounded-2xl w-fit border border-slate-200 shadow-sm">
               <button onClick={() => setDashboardTab('overview')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'overview' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><Activity size={16} className="inline ml-2" />סקירה כללית</button>
               <button onClick={() => setDashboardTab('tasks')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'tasks' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><LayoutList size={16} className="inline ml-2" />משימות פתוחות ({openTasksCount})</button>
@@ -405,8 +583,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
           {dashboardTab === 'overview' && (
             <div className="animate-fadeIn w-full space-y-8">
-                
-                {/* יישור תובנות AI לימין וניקוי אנגלית */}
                 <div className="bg-gradient-to-br from-[#432A61] to-[#603b8e] rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl transition-all group-hover:scale-125"></div>
                     <h3 className="font-bold text-xl mb-4 flex flex-row items-center gap-2"><Clock size={24} className="text-indigo-200" /> תובנות AI בזמן אמת</h3>
@@ -423,7 +599,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                                 <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none'}} />
                                 <Bar dataKey="value" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={45} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -444,7 +620,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
             </div>
           )}
 
-          {/* ... יתר הלשוניות נשארות זהות ומותאמות לימין ... */}
           {dashboardTab === 'tasks' && (
               <div className="animate-fadeIn w-full space-y-4">
                   <div className="flex flex-row items-center gap-2 mb-4 text-slate-700 font-bold text-lg"><Bell size={20} className="text-red-500" /> תקלות שממתינות לטיפול שלך</div>
@@ -466,10 +641,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                           </div>
                       </div>
                   ))}
+                  {openTasksCount === 0 && (
+                    <div className="p-20 text-center flex flex-col items-center bg-white rounded-[3rem] border border-dashed border-slate-200">
+                      <div className="bg-emerald-100 text-emerald-600 p-6 rounded-full mb-4 animate-bounce"><CheckCircle size={48}/></div>
+                      <h3 className="text-xl font-bold text-slate-700">אין משימות פתוחות! 🎉</h3>
+                    </div>
+                  )}
               </div>
           )}
 
-          {/* ... לשונית Users מותאמת לימין ... */}
           {dashboardTab === 'users' && (
               <div className="animate-fadeIn w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
@@ -483,6 +663,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                               <Bar dataKey="total" fill="#6366f1" radius={[0, 8, 8, 0]} barSize={25} />
                           </BarChart>
                       </ResponsiveContainer>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 overflow-y-auto max-h-[500px]">
+                      <h3 className="font-bold text-slate-700 mb-6 text-right">מומלצים להדרכה אישית</h3>
+                      <div className="space-y-4">
+                        {userStats.slice(0, 6).map((u, i) => (
+                          <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 flex-row-reverse hover:bg-indigo-50 transition-colors">
+                            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-xl">{u.name.charAt(0)}</div>
+                            <div className="flex-1 text-right">
+                              <div className="font-bold text-slate-800">{u.name}</div>
+                              <div className="text-xs text-slate-400 font-medium">{u.department}</div>
+                            </div>
+                            <div className="text-left font-black text-indigo-600">{u.total} <span className="text-[10px] text-slate-400 block font-normal">אינטראקציות</span></div>
+                          </div>
+                        ))}
+                      </div>
                   </div>
               </div>
           )}
