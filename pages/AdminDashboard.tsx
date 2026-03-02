@@ -45,6 +45,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   const [editStatus, setEditStatus] = useState<Issue['status']>('open');
   const [editCategory, setEditCategory] = useState<IssueCategory>(IssueCategory.OTHER);
   const [editPriority, setEditPriority] = useState<IssuePriority>(IssuePriority.MEDIUM);
+  // הסטייט החדש לשמירת דרך טיפול במאגר הידע
+  const [saveToKnowledgeBase, setSaveToKnowledgeBase] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -59,9 +61,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   const [querySortOption, setQuerySortOption] = useState<'newest' | 'oldest' | 'unanswered_first'>('newest');
 
   useEffect(() => {
-    if (isAuthenticated) {
-        loadData();
-    }
+    if (isAuthenticated) loadData();
   }, [activeView, isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -198,7 +198,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
             setNewDocContent(text);
         }
     } catch (error) {
-        console.error("File Reading Error:", error);
         alert("שגיאה בקריאת הקובץ. אנא נסה קובץ אחר.");
         setUploadedFileName(null);
     } finally {
@@ -254,6 +253,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       setEditStatus(issue.status);
       setEditCategory(issue.category);
       setEditPriority(issue.priority);
+      // איפוס התיבה בכל פתיחה של תקלה
+      setSaveToKnowledgeBase(false);
   };
 
   const cancelEditing = () => {
@@ -261,9 +262,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       setEditNotes('');
   };
 
-  // =========================================================================
-  // התיקון המרכזי כאן: saveEdit מעודכן שישלח נתונים לפי סדר Bug_Reports
-  // =========================================================================
   const saveEdit = async (issue: Issue) => {
       const isNewlyClosed = editStatus === 'closed' && issue.status !== 'closed';
       
@@ -276,13 +274,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
           closedAt: isNewlyClosed ? Date.now() : (editStatus !== 'closed' ? undefined : issue.closedAt)
       };
       
-      // 1. שמירה באחסון המקומי
       StorageService.updateIssue(updatedIssue);
       setIssues(prev => prev.map(i => i.id === issue.id ? updatedIssue : i));
       
-      // 2. השמירה לענן - מסודר בדיוק לפי הסדר בעמודות שלך:
-      // A: תאריך, B: שם מלא, C: מחלקה, D: תיאור, E: קבצים, 
-      // F: סטטוס, G: קטגוריה, H: דחיפות, I: דרך טיפול, J: זמן סגירה
       try {
           const rowData = [
               new Date(updatedIssue.createdAt).toISOString(),
@@ -295,13 +289,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
               updatedIssue.priority,
               updatedIssue.treatmentNotes || "",
               updatedIssue.closedAt ? new Date(updatedIssue.closedAt).toISOString() : "",
-              updatedIssue.id // העמודה החדשה בסוף לזיהוי ודאי!
+              updatedIssue.id 
           ];
 
           await fetch(APPS_SCRIPT_URL, {
               method: "POST",
               body: JSON.stringify({
-                  sheet: "Issues", // ה-AppsScript ממיר ל-Bug_Reports
+                  sheet: "Issues",
                   action: "update",
                   id: updatedIssue.id, 
                   username: updatedIssue.username,
@@ -313,11 +307,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
           console.error("Failed to update issue in cloud", error);
       }
 
-      // 3. הוספה למאגר הידע אם התקלה נסגרה עם פתרון מפורט
-      if (isNewlyClosed && editNotes.trim().length > 5) {
-          const newTitle = `פתרון תקלה: ${issue.summary}`;
-          const newContent = `**תיאור הבעיה המקורית שדווחה:**\n${issue.description}\n\n**דרך הטיפול והפתרון:**\n${editNotes}`;
+      // --- שמירת פתרון למאגר הידע - עכשיו תלוי בסימון של המנהל ---
+      if (saveToKnowledgeBase && editNotes.trim().length > 5) {
+          const newTitle = `פתרון שאלת משתמש/תקלה: ${issue.summary || issue.category}`;
+          const newContent = `**תיאור הבעיה המקורית:**\n${issue.description}\n\n**דרך הטיפול והפתרון:**\n${editNotes}`;
           const newItem: KnowledgeItem = { id: uuidv4(), title: newTitle, content: newContent, createdAt: Date.now(), sourceType: 'manual' };
+          
           StorageService.saveKnowledgeItem(newItem);
           setKnowledgeItems(prev => [newItem, ...prev]);
 
@@ -327,17 +322,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                   body: JSON.stringify({
                       sheet: "Knowledge_Base",
                       action: "insert",
-                      data: [new Date().toISOString(), newItem.title, newItem.content, "נלמד אוטומטית"]
+                      data: [new Date().toISOString(), newItem.title, newItem.content, "נלמד אוטומטית מטיפול"]
                   })
               });
-              alert("🤖 הפתרון התווסף אוטומטית למאגר הידע של המערכת.");
+              alert("✅ הפתרון נשמר בהצלחה גם במאגר הידע של הבוט!");
           } catch (error) {
               console.error("Auto-Knowledge Sync Error:", error);
           }
       }
       setEditingIssue(null);
   };
-  // =========================================================================
 
   const downloadAttachment = (attachment: Attachment) => {
       const link = document.createElement("a");
@@ -348,7 +342,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       document.body.removeChild(link);
   };
 
-  // חישובי KPIs לדאשבורד החדש
   const resolutionStats = useMemo(() => {
     const total = issues.length;
     const closedIssues = issues.filter(i => i.status === 'closed');
@@ -357,12 +350,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
     let avgTimeHours = 0;
     const issuesWithTime = closedIssues.filter(i => i.closedAt && i.createdAt);
-    
     if (issuesWithTime.length > 0) {
         const totalMs = issuesWithTime.reduce((acc, issue) => acc + (issue.closedAt! - issue.createdAt), 0);
         avgTimeHours = Math.round((totalMs / (1000 * 60 * 60)) * 10) / 10; 
     }
-
     return { total, closedCount, rate, avgTimeHours };
   }, [issues]);
 
@@ -739,7 +730,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                         </td>
                                         <td className="p-4">
                                             {editingIssue === issue.id ? (
-                                                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs h-20" placeholder="הזן דרך טיפול..." />
+                                                <div className="flex flex-col gap-2">
+                                                    <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs h-20" placeholder="הזן דרך טיפול..." />
+                                                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                                                        <input type="checkbox" checked={saveToKnowledgeBase} onChange={(e) => setSaveToKnowledgeBase(e.target.checked)} className="rounded text-indigo-600" />
+                                                        שמור למאגר ידע
+                                                    </label>
+                                                </div>
                                             ) : (
                                                 <div className="text-slate-600 whitespace-pre-wrap text-xs">{issue.treatmentNotes || <span className="text-slate-300 italic">טרם הוזן טיפול</span>}</div>
                                             )}
@@ -783,7 +780,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
           {dashboardTab === 'overview' && (
             <div className="animate-fadeIn w-full">
                 
-                {/* --- ה-KPIs החדשים: כרטיסיות נתונים מהירים --- */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center">
                         <div className="text-slate-400 text-sm mb-2 font-medium flex items-center gap-1"><FileText size={16}/> סה"כ תקלות</div>
@@ -878,10 +874,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                             </div>
                                             <div className="md:col-span-3">
                                                 <label className="block text-xs font-bold text-slate-500 mb-1">הערות טיפול</label>
-                                                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none h-20 resize-none" placeholder="הזן הערות לגבי הטיפול בתקלה..." />
+                                                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none h-20 resize-none mb-2" placeholder="הזן הערות לגבי הטיפול בתקלה..." />
+                                                <label className="flex items-center gap-2 text-sm text-slate-700 font-medium cursor-pointer w-fit">
+                                                    <input type="checkbox" checked={saveToKnowledgeBase} onChange={e => setSaveToKnowledgeBase(e.target.checked)} className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                                                    שמור את הפתרון הזה ישירות למאגר הידע (לשימוש עתידי של הבוט)
+                                                </label>
                                             </div>
                                       </div>
-                                      <div className="flex justify-end gap-2">
+                                      <div className="flex justify-end gap-2 mt-4">
                                           <button onClick={cancelEditing} className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 rounded-lg text-sm">ביטול</button>
                                           <button onClick={() => saveEdit(issue)} className="px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm flex items-center gap-1 shadow-sm"><Save size={16} /> שמור שינויים</button>
                                       </div>
@@ -900,7 +900,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
               </div>
           )}
 
-          {/* --- חזר: לשונית טיפול בעובדים --- */}
           {dashboardTab === 'users' && (
               <div className="animate-fadeIn w-full">
                   <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl mb-6 text-indigo-800 text-sm">
@@ -946,4 +945,3 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
     </div>
   );
 };
-
