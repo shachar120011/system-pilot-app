@@ -9,24 +9,21 @@ export const StorageService = {
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Error fetching issues:", error);
-      return [];
-    }
+    if (error) return [];
     
-    // מיפוי השדות מהדאטה-בייס לסוג הנתונים באפליקציה
     return data.map(item => ({
       id: item.id,
       createdAt: new Date(item.created_at).getTime(),
-      username: item.username,
-      userRole: item.department, // מחלקה
-      description: item.description,
-      category: item.category,
-      priority: item.priority,
-      status: item.status,
-      treatmentNotes: item.treatment_notes,
+      username: item.username || 'אנונימי',
+      userRole: item.department || '', 
+      summary: item.summary || 'תקלה ללא כותרת',
+      description: item.description || '',
+      category: item.category || 'אחר',
+      priority: item.priority || 'בינונית',
+      status: item.status || 'open',
+      treatmentNotes: item.treatment_notes || '',
       closedAt: item.closed_at ? new Date(item.closed_at).getTime() : undefined,
-      attachments: [] // טיפול בקבצים נעשה בשלב הבא
+      attachments: [] 
     }));
   },
 
@@ -34,17 +31,13 @@ export const StorageService = {
     const { error } = await supabase.from('issues').insert([{
       username: issue.username,
       department: issue.userRole,
+      summary: issue.summary,
       description: issue.description,
       category: issue.category,
       priority: issue.priority,
-      status: issue.status
+      status: 'open'
     }]);
-
-    if (error) {
-      console.error("Error saving issue:", error);
-      return false;
-    }
-    return true;
+    return !error;
   },
 
   updateIssue: async (updatedIssue: Issue): Promise<boolean> => {
@@ -58,12 +51,7 @@ export const StorageService = {
         closed_at: updatedIssue.closedAt ? new Date(updatedIssue.closedAt).toISOString() : null
       })
       .eq('id', updatedIssue.id);
-
-    if (error) {
-      console.error("Error updating issue:", error);
-      return false;
-    }
-    return true;
+    return !error;
   },
 
   // --- ניהול מאגר ידע (Knowledge Base) ---
@@ -72,16 +60,20 @@ export const StorageService = {
       .from('knowledge')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (error) return [];
-    
-    return data.map(item => ({
+    return error ? [] : data.map(item => ({
       id: item.id,
       createdAt: new Date(item.created_at).getTime(),
       title: item.title,
       content: item.content,
       sourceType: item.source_type
     }));
+  },
+
+  // הפונקציה שהייתה חסרה וגרמה לקריסה!
+  getFullContextText: async (): Promise<string> => {
+    const { data, error } = await supabase.from('knowledge').select('title, content');
+    if (error || !data) return "";
+    return data.map(item => `נושא: ${item.title}\nתוכן: ${item.content}`).join('\n\n---\n\n');
   },
 
   saveKnowledgeItem: async (item: KnowledgeItem): Promise<boolean> => {
@@ -95,14 +87,8 @@ export const StorageService = {
 
   // --- ניהול יומן שאלות (Chat Logs) ---
   getQueries: async (): Promise<UserQuery[]> => {
-    const { data, error } = await supabase
-      .from('chat_logs')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) return [];
-
-    return data.map(item => ({
+    const { data, error } = await supabase.from('chat_logs').select('*').order('created_at', { ascending: false });
+    return error ? [] : data.map(item => ({
       id: item.id,
       timestamp: new Date(item.created_at).getTime(),
       username: item.username,
