@@ -34,7 +34,10 @@ class GeminiServiceImpl {
       const responseSchema: Schema = {
         type: Type.OBJECT,
         properties: {
-          answer: { type: Type.STRING, description: "The synthesized answer based on all context sources, formatted in beautiful Markdown." },
+          answer: { 
+            type: Type.STRING, 
+            description: "The synthesized, detailed answer, formatted in beautiful Markdown (using headings, bold text, and bullet points)." 
+          },
           suggestions: { 
             type: Type.ARRAY, 
             items: { type: Type.STRING },
@@ -44,23 +47,26 @@ class GeminiServiceImpl {
         required: ["answer", "suggestions"]
       };
 
+      // הפרומפט שודרג משמעותית כדי לעודד תשובות עשירות ומנוסחות
       const prompt = `
-        You are a Senior Expert in Business Licensing (רישוי עסקים) and System Implementation.
-        Your goal is to assist users with the new organizational system by synthesizing information from multiple knowledge bases.
+        You are an expert AI assistant for the "Inactu" system, specifically designed for the Business Licensing Department (רישוי עסקים).
+        Your goal is to provide highly professional, friendly, and structured answers to employees using the system.
         
-        Combined Context Information (From various sources):
-        ${context}
+        System Knowledge Base Context:
+        ${context ? context : "No specific internal context provided for this query."}
         
         User Question:
         ${question}
         
-        Instructions:
-        1. Analyze ALL the provided Context Information sources.
-        2. Combine and synthesize the relevant information into a single, cohesive, and comprehensive answer.
-        3. Answer ONLY based on the provided context, but integrate the data intelligently.
-        4. Use **Markdown** formatting to create a highly readable and styled response.
-        5. If the answer is completely missing from the context, state clearly that you don't have that information.
-        6. Respond in Hebrew.
+        Instructions for formulating your response:
+        1. **Cross-reference Data:** Analyze the provided "System Knowledge Base Context". If the answer is there, base your response heavily on it.
+        2. **Fill the Gaps:** If the provided context is empty or incomplete, use your general knowledge as an expert AI to provide a helpful and logical answer related to organizational systems, municipal procedures, or general troubleshooting.
+        3. **Style & Structure:** The response MUST be highly styled using Markdown. Use:
+           - Headers (###) for main sections.
+           - Bold text (**text**) for emphasis on important terms or steps.
+           - Bullet points (- or 1. 2. 3.) for lists or instructions.
+        4. **Tone:** Professional, encouraging, and clear. Speak directly to the user (e.g., "כדי לבצע זאת, עליך...").
+        5. **Language:** Respond entirely in Hebrew.
       `;
 
       const response = await ai.models.generateContent({
@@ -86,8 +92,8 @@ class GeminiServiceImpl {
       }
 
       return {
-        answer: "אירעה שגיאה בעיבוד הבקשה מול השרת. אנא נסה שנית מאוחר יותר.",
-        suggestions: ["כיצד מבצעים בדיקת הגשה?", "מהם הסטטוסים האפשריים בתיק?"]
+        answer: "אופס! 🤖\nאירעה שגיאה בחיבור לשרתי הבינה המלאכותית. אנא ודא שחיבור הרשת תקין ונסה שוב בעוד מספר רגעים.",
+        suggestions: ["איך אפשר לדווח על תקלה?"]
       };
     }
   }
@@ -143,10 +149,10 @@ class GeminiServiceImpl {
       const ai = this.getClient();
       const response = await ai.models.generateContent({
         model: MODEL_NAME_FAST,
-        contents: `You are a Data Analyst. Here are recent issues: ${issuesContext}. Provide a short insight in Hebrew.`,
+        contents: `You are a Data Analyst for a municipal system. Here are recent issues: ${issuesContext}. Provide a short insight in Hebrew.`,
         config: { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
       });
-      return response.text || "לא זוהו תובנות.";
+      return response.text || "לא זוהו תובנות בשלב זה.";
     } catch (error) {
       return "שגיאה בייצור תובנות.";
     }
@@ -173,7 +179,7 @@ class GeminiServiceImpl {
 
       const response = await ai.models.generateContent({
         model: MODEL_NAME_FAST,
-        contents: `Analyze these questions: ${JSON.stringify(textQuestions)}. Group into common topics.`,
+        contents: `Analyze these questions: ${JSON.stringify(textQuestions)}. Group into common topics in Hebrew.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: responseSchema,
