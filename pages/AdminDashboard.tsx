@@ -208,15 +208,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
       setEditingIssue(null);
   };
 
-  const downloadAttachment = (attachment: Attachment) => {
-      const link = document.createElement("a");
-      link.href = attachment.data;
-      link.download = attachment.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-  };
-
   const resolutionStats = useMemo(() => {
     const total = issues.length;
     const closedCount = issues.filter(i => i.status === 'closed').length;
@@ -334,11 +325,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   }, [issues]);
 
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
+  
+  // הוספת dir="rtl" באופן מפורש בקלאס הראשי
   const screenWrapperClass = "h-screen w-full overflow-y-auto bg-slate-50 p-4 md:p-8 animate-fadeIn text-right rtl";
 
   if (!isAuthenticated) {
       return (
-          <div className="flex flex-col items-center justify-center h-screen w-full bg-slate-50 p-6 animate-fadeIn text-right rtl">
+          <div className="flex flex-col items-center justify-center h-screen w-full bg-slate-50 p-6 animate-fadeIn" dir="rtl">
               <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full">
                   <div className="text-center mb-6">
                       <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600"><Lock size={32} /></div>
@@ -346,8 +339,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                       <p className="text-slate-500 mt-2">ניהול מערכת (Supabase Cloud)</p>
                   </div>
                   <form onSubmit={handleLogin} className="space-y-4">
-                      <input type="text" value={adminName} onChange={(e) => setAdminName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border rounded-xl outline-none text-right" placeholder="שם משתמש" required />
-                      <input type="password" value={adminPassword} onChange={(e) => { setAdminPassword(e.target.value); setAuthError(false); }} className={`w-full px-4 py-2.5 bg-slate-50 border rounded-xl outline-none text-right ${authError ? 'border-red-500 bg-red-50' : ''}`} placeholder="סיסמה" required />
+                      <input type="text" value={adminName} onChange={(e) => setAdminName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border rounded-xl outline-none" placeholder="שם משתמש" required />
+                      <input type="password" value={adminPassword} onChange={(e) => { setAdminPassword(e.target.value); setAuthError(false); }} className={`w-full px-4 py-2.5 bg-slate-50 border rounded-xl outline-none ${authError ? 'border-red-500 bg-red-50' : ''}`} placeholder="סיסמה" required />
                       <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg mt-4">כניסה למערכת</button>
                   </form>
               </div>
@@ -357,16 +350,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
   if (activeView === 'knowledge') {
     return (
-      <div className={screenWrapperClass}>
+      <div className={screenWrapperClass} dir="rtl">
         <div className="max-w-7xl mx-auto w-full pb-20">
-            {/* יישור כותרת לימין - תיקון RTL */}
-            <div className="flex flex-row-reverse justify-between items-center mb-6">
+            {/* כותרת מיושרת לימין ללא פלקס מתנגש */}
+            <div className="mb-6">
               <h1 className="text-3xl font-bold text-slate-800">ניהול מאגר ידע</h1>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               <div className="lg:col-span-1">
                 <div className="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100">
-                  <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 flex-row-reverse"><Upload size={20} className="text-indigo-600" /> הוספת מידע חדש</h2>
+                  <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><Upload size={20} className="text-indigo-600" /> הוספת מידע חדש</h2>
                   <div onClick={() => !isReadingFile && fileInputRef.current?.click()} className="mb-4 border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 transition-all">
                     <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.md,.pdf" onChange={handleFileSelect} />
                     {isReadingFile ? <Loader2 size={24} className="animate-spin text-indigo-600" /> : <FileUp size={24} className="text-indigo-600 mb-2" />}
@@ -374,8 +367,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                     {uploadedFileName && <div className="mt-2 text-xs text-emerald-600 font-bold">{uploadedFileName}</div>}
                   </div>
                   <form onSubmit={handleAddKnowledge} className="space-y-4">
-                    <input type="text" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-right" placeholder="כותרת" required />
-                    <textarea value={newDocContent} onChange={(e) => setNewDocContent(e.target.value)} className="w-full h-32 p-3 bg-slate-50 border rounded-xl text-right resize-none" placeholder="תוכן..." required />
+                    <input type="text" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl" placeholder="כותרת" required />
+                    <textarea value={newDocContent} onChange={(e) => setNewDocContent(e.target.value)} className="w-full h-32 p-3 bg-slate-50 border rounded-xl resize-none" placeholder="תוכן..." required />
                     <button type="submit" className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md flex justify-center items-center gap-2">
                         {uploadSuccess ? <CheckCircle size={20} /> : <Plus size={20} />} {uploadSuccess ? 'נשמר' : 'שמור למאגר'}
                     </button>
@@ -386,7 +379,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                  <h2 className="text-lg font-bold text-slate-700 mb-2">פריטי ידע קיימים ({knowledgeItems.length})</h2>
                 {knowledgeItems.map((item) => (
                     <div key={item.id} className="bg-white p-5 rounded-2xl shadow-sm border group relative">
-                        <div className="flex justify-between flex-row-reverse mb-2">
+                        <div className="flex justify-between items-center mb-2">
                             <h3 className="font-bold text-slate-800">{item.title}</h3>
                             <span className="text-xs text-slate-400">{new Date(item.createdAt).toLocaleDateString('he-IL')}</span>
                         </div>
@@ -403,10 +396,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
   if (activeView === 'queries') {
     return (
-      <div className={screenWrapperClass}>
+      <div className={screenWrapperClass} dir="rtl">
           <div className="max-w-7xl mx-auto w-full pb-20">
-              <div className="flex flex-row-reverse justify-between items-center mb-6">
-                  <div className="text-right">
+              <div className="flex justify-between items-center mb-6">
+                  <div>
                       <h1 className="text-3xl font-bold text-slate-800">תיעוד שאלות ושיחות</h1>
                       <p className="text-slate-500">מעקב אחר שאלות עובדים</p>
                   </div>
@@ -417,17 +410,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
               </div>
 
               <div className="mb-8">
-                <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 flex-row-reverse"><TrendingUp size={20} className="text-indigo-500" /> ניתוח מגמות AI</h3>
+                <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><TrendingUp size={20} className="text-indigo-500" /> ניתוח מגמות AI</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {queryTrends.map((trend, idx) => (
                       <div key={idx} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-1 h-full bg-indigo-500"></div>
-                        <div className="flex justify-between items-start flex-row-reverse mb-2">
+                        <div className="flex justify-between items-start mb-2">
                           <h4 className="font-bold text-slate-800">{trend.topic}</h4>
                           <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg text-xs font-bold">{trend.count} שאלות</span>
                         </div>
                         <div className="text-[11px] text-slate-500 mt-2 space-y-1">
-                          {trend.exampleQuestions.map((q, i) => <div key={i} className="flex items-start gap-1.5 flex-row-reverse"><HelpCircle size={10} className="mt-0.5 shrink-0" /><span className="truncate">{q}</span></div>)}
+                          {trend.exampleQuestions.map((q, i) => <div key={i} className="flex items-start gap-1.5"><HelpCircle size={10} className="mt-0.5 shrink-0" /><span className="truncate">{q}</span></div>)}
                         </div>
                       </div>
                     ))}
@@ -462,10 +455,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
   if (activeView === 'reports') {
       return (
-        <div className={screenWrapperClass}>
+        <div className={screenWrapperClass} dir="rtl">
             <div className="max-w-7xl mx-auto w-full pb-20">
-                {/* תיקון כותרת דוח - יישור לימין */}
-                <div className="flex flex-row-reverse justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-slate-800">דוח בקרה וטיפול</h1>
                     <div className="flex gap-2">
                         <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl shadow-sm transition-all"><Download size={18} /> יצוא לאקסל</button>
@@ -486,7 +478,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                     <tr key={issue.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="p-4 text-slate-500">
                                             {new Date(issue.createdAt).toLocaleDateString('he-IL')}
-                                            {issue.closedAt && <div className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1 flex-row-reverse"><CheckCircle size={10}/> נסגר: {new Date(issue.closedAt).toLocaleDateString('he-IL')}</div>}
+                                            {issue.closedAt && <div className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1"><CheckCircle size={10}/> נסגר: {new Date(issue.closedAt).toLocaleDateString('he-IL')}</div>}
                                         </td>
                                         <td className="p-4 font-medium text-slate-800">{issue.username}</td>
                                         <td className="p-4">
@@ -528,7 +520,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                                             {editingIssue === issue.id ? (
                                                 <div className="flex gap-1">
                                                   <button onClick={() => saveEdit(issue)} className="bg-indigo-600 text-white p-1.5 rounded-lg hover:bg-indigo-700 shadow-sm transition-all"><Save size={14}/></button>
-                                                  <button onClick={() => setEditingIssue(null)} className="bg-slate-200 text-slate-600 p-1.5 rounded-lg hover:bg-slate-300"><X size={14}/></button>
+                                                  <button onClick={() => setEditingIssue(null)} className="bg-slate-200 text-slate-600 p-1.5 rounded-lg"><X size={14}/></button>
                                                 </div>
                                             ) : (
                                                 <button onClick={() => startEditing(issue)} className="text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-all">עדכן</button>
@@ -546,11 +538,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
   }
 
   return (
-    <div className={screenWrapperClass}>
+    <div className={screenWrapperClass} dir="rtl">
       <div className="max-w-7xl mx-auto w-full pb-20">
-          {/* כותרת דאשבורד - יישור לימין */}
-          <div className="flex flex-row-reverse justify-between items-center mb-8">
-            <div className="text-right">
+          <div className="flex justify-between items-center mb-8">
+            <div>
                <h1 className="text-3xl font-bold text-slate-800 tracking-tight">לוח בקרה ניהולי</h1>
                <p className="text-slate-500 font-medium">סקירה כללית על הטמעת המערכת (Supabase Cloud)</p>
             </div>
@@ -559,24 +550,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
-                  <div className="text-slate-400 text-sm mb-2 font-bold flex flex-row items-center gap-1"><FileText size={16}/> סה"כ תקלות</div>
+                  <div className="text-slate-400 text-sm mb-2 font-bold flex items-center gap-1"><FileText size={16}/> סה"כ תקלות</div>
                   <div className="text-3xl font-black text-slate-700">{resolutionStats.total}</div>
               </div>
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
-                  <div className="text-slate-400 text-sm mb-2 font-bold text-red-500 flex flex-row items-center gap-1"><AlertCircle size={16}/> פתוחות</div>
+                  <div className="text-slate-400 text-sm mb-2 font-bold text-red-500 flex items-center gap-1"><AlertCircle size={16}/> פתוחות</div>
                   <div className="text-3xl font-black text-red-500">{openTasksCount}</div>
               </div>
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
-                  <div className="text-slate-400 text-sm mb-2 font-bold text-emerald-500 flex flex-row items-center gap-1"><Target size={16}/> אחוז פתרון</div>
+                  <div className="text-slate-400 text-sm mb-2 font-bold text-emerald-500 flex items-center gap-1"><Target size={16}/> אחוז פתרון</div>
                   <div className="text-3xl font-black text-emerald-500">{resolutionStats.rate}%</div>
               </div>
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center transition-all hover:shadow-md">
-                  <div className="text-slate-400 text-sm mb-2 font-bold text-indigo-500 flex flex-row items-center gap-1"><Timer size={16}/> זמן פתרון</div>
+                  <div className="text-slate-400 text-sm mb-2 font-bold text-indigo-500 flex items-center gap-1"><Timer size={16}/> זמן פתרון</div>
                   <div className="text-3xl font-black text-indigo-600" dir="ltr">{resolutionStats.avgTimeHours}h</div>
               </div>
           </div>
 
-          <div className="flex flex-row-reverse items-center gap-2 mb-8 bg-white p-1 rounded-2xl w-fit border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-2xl w-fit border border-slate-200 shadow-sm">
               <button onClick={() => setDashboardTab('overview')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'overview' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><Activity size={16} className="inline ml-2" />סקירה כללית</button>
               <button onClick={() => setDashboardTab('tasks')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'tasks' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><LayoutList size={16} className="inline ml-2" />משימות פתוחות ({openTasksCount})</button>
               <button onClick={() => setDashboardTab('users')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${dashboardTab === 'users' ? 'bg-indigo-50 text-indigo-600 shadow-inner' : 'text-slate-400 hover:bg-slate-50'}`}><Users size={16} className="inline ml-2" />משתמשים</button>
@@ -586,15 +577,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
             <div className="animate-fadeIn w-full space-y-8">
                 <div className="bg-gradient-to-br from-[#432A61] to-[#603b8e] rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl transition-all group-hover:scale-125"></div>
-                    <h3 className="font-bold text-xl mb-4 flex flex-row-reverse items-center gap-2"><Clock size={24} className="text-indigo-200" /> תובנות AI בזמן אמת</h3>
-                    <div className="text-indigo-50 leading-relaxed text-lg prose prose-invert prose-p:my-1 text-right max-w-none">
+                    <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><Clock size={24} className="text-indigo-200" /> תובנות AI בזמן אמת</h3>
+                    <div className="text-indigo-50 leading-relaxed text-lg prose prose-invert prose-p:my-1 max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiInsight || 'המערכת מנתחת נתונים...'}</ReactMarkdown>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[400px]">
-                        <h3 className="font-bold text-slate-700 mb-8 text-lg text-right">התפלגות תקלות לפי קטגוריה</h3>
+                        <h3 className="font-bold text-slate-700 mb-8 text-lg">התפלגות תקלות לפי קטגוריה</h3>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={categoryData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -606,7 +597,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                         </ResponsiveContainer>
                     </div>
                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[400px]">
-                        <h3 className="font-bold text-slate-700 mb-8 text-lg text-right">דחיפות תקלות במערכת</h3>
+                        <h3 className="font-bold text-slate-700 mb-8 text-lg">דחיפות תקלות במערכת</h3>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie data={priorityData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={8} dataKey="value">
@@ -623,19 +614,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
 
           {dashboardTab === 'tasks' && (
               <div className="animate-fadeIn w-full space-y-4">
-                  <div className="flex flex-row-reverse items-center gap-2 mb-4 text-slate-700 font-bold text-lg"><Bell size={20} className="text-red-500" /> תקלות שממתינות לטיפול שלך</div>
+                  <div className="flex items-center gap-2 mb-4 text-slate-700 font-bold text-lg"><Bell size={20} className="text-red-500" /> תקלות שממתינות לטיפול שלך</div>
                   {filteredIssues.filter(i => i.status === 'open').map(issue => (
                       <div key={issue.id} className="bg-white p-6 rounded-3xl border-r-4 border-r-red-500 shadow-sm border border-slate-100 transition-all hover:shadow-md hover:-translate-y-1">
-                          <div className="flex flex-row-reverse justify-between items-start">
-                                <div className="text-right">
-                                    <div className="flex flex-row-reverse items-center gap-3 mb-2">
+                          <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-2">
                                       <h4 className="font-bold text-slate-800 text-lg">{issue.summary || issue.category}</h4>
                                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${issue.priority === IssuePriority.CRITICAL ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-700'}`}>{issue.priority}</span>
                                     </div>
                                     <p className="text-slate-600 text-sm mb-4 line-clamp-2 max-w-2xl">{issue.description}</p>
-                                    <div className="flex flex-row-reverse items-center gap-4 text-xs text-slate-400">
-                                      <span className="flex flex-row-reverse items-center gap-1"><Clock size={12}/> {new Date(issue.createdAt).toLocaleDateString('he-IL')}</span>
-                                      <span className="flex flex-row-reverse items-center gap-1"><User size={12}/> {issue.username}</span>
+                                    <div className="flex items-center gap-4 text-xs text-slate-400">
+                                      <span className="flex items-center gap-1"><Clock size={12}/> {new Date(issue.createdAt).toLocaleDateString('he-IL')}</span>
+                                      <span className="flex items-center gap-1"><User size={12}/> {issue.username}</span>
                                     </div>
                                 </div>
                                 <button onClick={() => startEditing(issue)} className="bg-white text-indigo-600 border border-indigo-100 hover:bg-indigo-50 px-6 py-3 rounded-2xl text-sm font-bold transition-all shadow-sm">טפל בתקלה</button>
@@ -654,7 +645,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
           {dashboardTab === 'users' && (
               <div className="animate-fadeIn w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                      <h3 className="font-bold text-slate-700 mb-8 text-lg text-right">משתמשים עם הפעילות הגבוהה ביותר</h3>
+                      <h3 className="font-bold text-slate-700 mb-8 text-lg">משתמשים עם הפעילות הגבוהה ביותר</h3>
                       <ResponsiveContainer width="100%" height={400}>
                           <BarChart data={userStats.slice(0, 8)} layout="vertical" margin={{right: 30}}>
                               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -666,16 +657,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeView }) =>
                       </ResponsiveContainer>
                   </div>
                   <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 overflow-y-auto max-h-[500px]">
-                      <h3 className="font-bold text-slate-700 mb-6 text-right">מומלצים להדרכה אישית</h3>
+                      <h3 className="font-bold text-slate-700 mb-6">מומלצים להדרכה אישית</h3>
                       <div className="space-y-4">
                         {userStats.slice(0, 6).map((u, i) => (
-                          <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 flex-row-reverse hover:bg-indigo-50 transition-colors">
+                          <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-indigo-50 transition-colors">
                             <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-xl">{u.name.charAt(0)}</div>
-                            <div className="flex-1 text-right">
+                            <div className="flex-1">
                               <div className="font-bold text-slate-800">{u.name}</div>
                               <div className="text-xs text-slate-400 font-medium">{u.department}</div>
                             </div>
-                            <div className="text-left font-black text-indigo-600">{u.total} <span className="text-[10px] text-slate-400 block font-normal">אינטראקציות</span></div>
+                            <div className="text-center font-black text-indigo-600">{u.total} <span className="text-[10px] text-slate-400 block font-normal">אינטראקציות</span></div>
                           </div>
                         ))}
                       </div>
