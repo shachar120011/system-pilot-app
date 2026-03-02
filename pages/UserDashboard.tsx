@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, LogIn } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { siteConfig } from '../config';
-import { GeminiService } from '../services/geminiService'; 
+import { GeminiService } from '../services/geminiService';
+// ייבוא קריטי: מאפשר לבוט לשלוף את נהלי העירייה ממאגר הידע
+import { StorageService } from '../services/storageService';
 
 export const UserDashboard: React.FC = () => {
   // --- States עבור האימות ---
@@ -33,11 +37,29 @@ export const UserDashboard: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const result = await GeminiService.askQuestion("", query);
+      // תיקון: שולפים את כל מאגר הידע מהאחסון המקומי
+      const systemContext = StorageService.getFullContextText();
+      
+      // שולחים לבוט גם את השאלה וגם את כל הידע ששלפנו!
+      const result = await GeminiService.askQuestion(systemContext, query);
+      
+      // שומרים את השאלה ביומן השאלות של המנהל
+      StorageService.saveQuery({
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        username: userName,
+        department: department,
+        question: userMsg.text,
+        answer: result.answer,
+        isAnswered: true
+      });
+
       const botMsg = { id: (Date.now() + 1).toString(), text: result.answer, role: 'model' };
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
       console.error("Chat Error:", error);
+      const errorMsg = { id: (Date.now() + 1).toString(), text: "מצטער, הייתה בעיה קטנה בעיבוד הבקשה שלך. אנא נסה שוב.", role: 'model' };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -105,14 +127,14 @@ export const UserDashboard: React.FC = () => {
     <div className="flex-1 h-screen bg-slate-50 flex justify-center items-center p-4 md:p-8 w-full overflow-hidden">
       <div className="w-full max-w-5xl h-full max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative z-10">
         
-        {/* כותרת הצ'אט - כאן תוקן הפונט! */}
+        {/* כותרת הצ'אט */}
         <div className="p-5 md:p-6 border-b border-slate-100 bg-white flex items-center justify-between flex-row-reverse z-20 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="bg-gradient-to-br from-[#432A61] to-[#603b8e] p-3 rounded-2xl text-white shadow-md">
               <Bot size={26} />
             </div>
             <div className="text-right">
-              {/* השינוי החשוב: text-xl font-bold tracking-wide במקום font-black */}
+              {/* הפונט תוקן ל-font-bold במקום font-black */}
               <h2 className="text-xl font-bold text-[#432A61] tracking-wide">{siteConfig.clientSystemName}</h2>
               <p className="text-xs text-slate-500 font-medium">{siteConfig.clientName}</p>
             </div>
@@ -140,7 +162,14 @@ export const UserDashboard: React.FC = () => {
                   ? 'bg-gradient-to-l from-[#432A61] to-[#55357a] text-white rounded-br-none' 
                   : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
               }`}>
-                {m.text}
+                {/* תיקון: הצגת התשובה של הבוט באמצעות Markdown כדי שתראה יפה */}
+                {m.role === 'model' ? (
+                  <div className="prose prose-sm prose-slate rtl text-right max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                  </div>
+                ) : (
+                  m.text
+                )}
               </div>
             </div>
           ))}
@@ -148,7 +177,7 @@ export const UserDashboard: React.FC = () => {
             <div className="flex justify-start px-4 animate-fadeIn">
               <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-3 text-slate-500 text-sm font-medium">
                 <Loader2 size={18} className="animate-spin text-[#432A61]" />
-                המערכת מקלידה תשובה...
+                המערכת מנתחת נתונים ומקלידה תשובה...
               </div>
             </div>
           )}
