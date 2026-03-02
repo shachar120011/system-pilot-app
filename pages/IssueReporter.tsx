@@ -6,7 +6,6 @@ import { GeminiService } from '../services/geminiService';
 import { IssuePriority, IssueCategory, Issue, Attachment } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-// אל תשכח לוודא שהכתובת פה היא הכתובת האמיתית מה-Deploy האחרון שעשית!
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfIFA_uSeLGUU5WPyhU5kDCSIGmFGBnKy8co6dAN_t4PEM8ttygaJtT5eu3IjLM3XY/exec";
 
 export const IssueReporter: React.FC = () => {
@@ -80,20 +79,21 @@ export const IssueReporter: React.FC = () => {
     const newIssue: Issue = {
       id: uuidv4(),
       summary,
-      description: `[נושא: ${summary}] ${description}`, // שילבנו את הנושא לתוך התיאור כי אין עמודה מיוחדת בגיליון
+      description: `[נושא: ${summary}] ${description}`,
       category: detectedCategory,
       priority: detectedPriority,
       status: 'open',
       createdAt: Date.now(),
-      username: 'משתמש מחובר', // כאן תוכל בהמשך למשוך את השם האמיתי מה-State
+      username: 'משתמש מחובר', // כאן בהמשך תוכל למשוך את השם האמיתי אם יש צורך
       userRole: 'עובד עירייה',
       attachments: attachments
     };
 
-    // שמירה לאחסון המקומי של המנהל
+    // שמירה מקומית
     StorageService.saveIssue(newIssue);
 
-    // --- שמירה לענן בסדר המדויק של הלשונית Bug_Reports ---
+    // --- השמירה לענן ---
+    // סדר השדות בדיוק לפי גיליון Bug_Reports שלך!
     try {
       const rowData = [
           new Date(newIssue.createdAt).toISOString(), // A: תאריך ושעה
@@ -104,15 +104,15 @@ export const IssueReporter: React.FC = () => {
           newIssue.status,                            // F: סטטוס טיפול
           newIssue.category,                          // G: קטגוריה
           newIssue.priority,                          // H: דחיפות
-          "",                                         // I: דרך טיפול
-          "",                                         // J: זמן סגירה
-          newIssue.id                                 // K: המזהה הנסתר שלנו! (ID)
+          "",                                         // I: דרך טיפול (ריק בפתיחה)
+          "",                                         // J: זמן סגירה (ריק בפתיחה)
+          newIssue.id                                 // K: המזהה הנסתר (ID)
       ];
 
       await fetch(APPS_SCRIPT_URL, {
           method: "POST",
           body: JSON.stringify({ 
-            sheet: "Issues", // ה-Apps Script שכתבנו יודע ש-Issues זה Bug_Reports
+            sheet: "Issues", // Apps Script מתרגם ל-Bug_Reports
             action: "insert", 
             data: rowData 
           })
