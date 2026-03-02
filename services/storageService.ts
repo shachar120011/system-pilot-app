@@ -23,7 +23,8 @@ export const StorageService = {
       status: item.status || 'open',
       treatmentNotes: item.treatment_notes || '',
       closedAt: item.closed_at ? new Date(item.closed_at).getTime() : undefined,
-      attachments: [] 
+      // משיכת הקבצים מהענן!
+      attachments: item.attachments || [] 
     }));
   },
 
@@ -35,7 +36,9 @@ export const StorageService = {
       description: issue.description,
       category: issue.category,
       priority: issue.priority,
-      status: 'open'
+      status: 'open',
+      // שליחת הקבצים לענן!
+      attachments: issue.attachments 
     }]);
     return !error;
   },
@@ -70,7 +73,6 @@ export const StorageService = {
     }));
   },
 
-  // תיקון השגיאה מה-Console: פונקציה להחזרת כל ההקשר לבוט
   getFullContextText: async (): Promise<string> => {
     const { data, error } = await supabase.from('knowledge').select('title, content');
     if (error || !data) return "";
