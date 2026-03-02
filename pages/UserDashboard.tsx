@@ -50,7 +50,7 @@ export const UserDashboard: React.FC = () => {
   // --- רינדור מסך אימות (התחברות) ---
   if (!isAuthenticated) {
     return (
-      <div className="flex-1 min-h-screen bg-slate-100 flex justify-center items-center p-6">
+      <div className="flex-1 min-h-screen bg-slate-100 flex justify-center items-center p-6 w-full">
         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl border border-slate-200">
           <div className="flex flex-col items-center mb-8">
             <div className="bg-[#432A61] p-4 rounded-full text-white shadow-lg mb-4">
@@ -81,10 +81,11 @@ export const UserDashboard: React.FC = () => {
                 required
               >
                 <option value="" disabled>בחר מחלקה...</option>
-                <option value="licensing">רישוי עסקים</option>
-                <option value="engineering">הנדסה</option>
-                <option value="sanitation">תברואה</option>
-                <option value="management">הנהלה</option>
+                <option value="מרכז שירות">מרכז שירות</option>
+                <option value="ביקורת עסקים">ביקורת עסקים</option>
+                <option value="תכנון הנדסי">תכנון הנדסי</option>
+                <option value="רישוי הנדסי">רישוי הנדסי</option>
+                <option value="הנהלה">הנהלה</option>
               </select>
             </div>
             <button 
@@ -101,7 +102,6 @@ export const UserDashboard: React.FC = () => {
 
   // --- רינדור מסך הצ'אט (לאחר התחברות) ---
   return (
-    // הסרתי את ה-mr-72 והשתמשתי ב-w-full כדי לתת לו לתפוס את השטח הנותר באופן טבעי
     <div className="flex-1 h-screen bg-slate-100 flex justify-center items-center p-6 w-full">
       <div className="w-full max-w-5xl h-[92vh] flex flex-col bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
         
@@ -115,9 +115,9 @@ export const UserDashboard: React.FC = () => {
             </div>
           </div>
           {/* מציג את פרטי המשתמש המחובר */}
-          <div className="flex items-center gap-2 text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm flex-row-reverse">
              <User size={16} />
-             <span className="text-sm font-medium">{userName} | {department === 'licensing' ? 'רישוי עסקים' : department}</span>
+             <span className="text-sm font-medium">{userName} | {department}</span>
           </div>
         </div>
 
@@ -153,7 +153,7 @@ export const UserDashboard: React.FC = () => {
               className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-right outline-none focus:border-[#432A61] shadow-inner"
               placeholder={siteConfig.inputPlaceholder}
             />
-            <button type="submit" className="bg-[#432A61] text-white p-4 rounded-2xl shadow-xl transition-all">
+            <button type="submit" className="bg-[#432A61] text-white p-4 rounded-2xl shadow-xl hover:bg-[#2d1b42] transition-colors">
               <Send size={24} className="rotate-[-45deg]" />
             </button>
           </form>
